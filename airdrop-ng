@@ -120,7 +120,7 @@ class Rule:
     # The client or AP rule is the input to this class
     def __init__(self, rule):
         self.rule = rule
-        anymatch = recompile('any', IGNORECASE)
+        self.anymatch = recompile('any', IGNORECASE)
         self.kickmethod = rule['attack']
         del rule['attack']
         for key in rule.keys():
@@ -129,10 +129,8 @@ class Rule:
                 if key == "company":
                     #Build a greedy, case-ignoring regex to match off of
                     self.companymatch = recompile(rule[key]+".*", IGNORECASE)
-                if anymatch.match(rule[key]):
+                if self.anymatch.match(rule[key]):
                     self.any = True
-                else:
-                    self.any = False 
             except Exception, e:
                 print "We handled an error related to lists in the rule -- it's OK.  We know about it."
                 print e
@@ -140,6 +138,7 @@ class Rule:
     def match(self, obj):
         # There will need to be error handling here for if you try to compare a client to an AP rule or vice versa
         obj_attributes = obj.__dict__
+
         for key in obj_attributes.keys():
             try:
                 # If it says any in the rule, realize that and drop it
@@ -229,6 +228,7 @@ class getTargets:
 
         # match clients in air to kick rules
         self.targets = []
+        print "clients: " + str(len(clientObjs))
         for client in clientObjs:
             for clientRule in client_rules:
                 if clientRule.match(client):
@@ -285,13 +285,12 @@ class Kicker:
                 channel = ap.channel
                 client_mac = obj.mac
                 bssid = ap.bssid
-                print "channel:" + str(channel) + "mac:" + str(client_mac) + "bssid:" + ap.bssid
 
                 # If it's not a list, make it one
                 if isinstance(kickmethod,types.IntType):
                     kickmethod = [kickmethod]
                 # Well, looks like we got us a cowboy
-                if kickmethod == 0:
+                if int(kickmethod) == 0:
                     kickmethod = [1,2,3,4]
                 # Kick according to attacks in list
                 #pdb.set_trace()
@@ -313,12 +312,12 @@ class Kicker:
                         self.engine.wdsPacketEngine(
                             True, bssid, client_mac, bssid, channel))
                 #pew pew pew! Fire deauth packets!
-                if kickmethod == 0:
-                    while kickmethod != 4:
-                        kickmethod = kickmethod + 1
-                        kick[kickmethod] 
-                else:
-                    kick[kickmethod]
+                #if kickmethod == 0:
+                #    while kickmethod != 4:
+                #        kickmethod = kickmethod + 1
+                #        kick[kickmethod] 
+                #else:
+                #    kick[kickmethod]
                     
             elif obj.type == "accessPoint": # I Disagree with this camelcase
                 print "access point dropping is unimplemented"

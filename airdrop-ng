@@ -118,11 +118,12 @@ class parseFiles:
         """
         try:    
             try:
-                self.ouiLookup = libOuiParse.macOUI_lookup("./support/oui.txt")
+                self.ouiLookup = liboui2.Oui("./support/oui.txt")
             except IOError:
                 path = install_dir + "support/oui.txt"
-                self.ouiLookup = libOuiParse.macOUI_lookup(path)
+                self.ouiLookup = liboui2.Oui(path)
         except IOError:
+            # need to impliment this...
             for path in libOuiParse.OUIPATH:
                     message.printError(["oui.txt not found in " + path])
             message.printError("Please run airodump-ng-oui-update")

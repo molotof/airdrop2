@@ -9,7 +9,6 @@ from random import randrange
 from os import path, geteuid
 from time import sleep, localtime
 from airdrop import bcolors, install_dir
-from airdrop import libOuiParse
 from binascii import a2b_hex
 from sys import argv, stderr
 from sys import exit as sexit
@@ -22,6 +21,7 @@ except ImportError, e:
 try:
     import Tool80211
     import Gen80211
+    import liboui2
 except ImportError, e:
     print "Did you read the readme?\nYou seem to be missing the py80211 libs"
     print e
@@ -116,24 +116,18 @@ class parseFiles:
         ouidata base lookup
         find oui.txt and parse it
         """
-        try:
-            from airdrop import libOuiParse
-            try:    
-                try:
-                    self.ouiLookup = libOuiParse.macOUI_lookup("./support/oui.txt")
-                except IOError:
-                    path = install_dir + "support/oui.txt"
-                    self.ouiLookup = libOuiParse.macOUI_lookup(path)
+        try:    
+            try:
+                self.ouiLookup = libOuiParse.macOUI_lookup("./support/oui.txt")
             except IOError:
-                for path in libOuiParse.OUIPATH:
-                        message.printError(["oui.txt not found in " + path])
-                message.printError("Please run airodump-ng-oui-update")
-                self.exit(-1)
-
-        except ImportError,e:
-            message.printMessage(["\n", e, "ouiParser error"]) 
+                path = install_dir + "support/oui.txt"
+                self.ouiLookup = libOuiParse.macOUI_lookup(path)
+        except IOError:
+            for path in libOuiParse.OUIPATH:
+                    message.printError(["oui.txt not found in " + path])
+            message.printError("Please run airodump-ng-oui-update")
             self.exit(-1)
-    
+
     def fileOpen(self, name):
         """
         Open the file and read in the rules and remove \\n characters

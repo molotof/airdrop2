@@ -216,7 +216,7 @@ class parseFiles:
                 # lookup mac to make sure its a valid oui
                 ouiCheck = self.ouiLookup.search(cmac, 'm')
                 # lookup company to get a list of all company's ouis
-                companyCheck = self.ouiLookup.search(position, 'c')
+                companyCheck = self.ouiLookup.search(postion, 'c')
                 if self.validMacChk(cmac) == True: 
                     #build a list of clients
                     clientList.append(self.convertHex(cmac))

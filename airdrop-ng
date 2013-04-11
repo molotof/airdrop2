@@ -275,7 +275,7 @@ class parseFiles:
             
             elif companyCheck is not None:
                 bssidOuiList.extend(companyCheck)
-                if bssidOuiList ! = []:
+                if bssidOuiList != []:
                     for target in self.translateOUI(bssidOuiList,'b'):
                         bssidList.append(self.convertHex(target))
                     bssidOuiList = [] # empty var

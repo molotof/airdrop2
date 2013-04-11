@@ -213,15 +213,27 @@ class parseFiles:
                 break
             else:
                 cmac = postion.upper().replace("-", ":") 
+                # lookup mac to make sure its a valid oui
+                ouiCheck = self.ouiLookup.search(cmac, 'm')
+                # lookup company to get a list of all company's ouis
+                companyCheck = self.ouiLookup.search(position, 'c')
                 if self.validMacChk(cmac) == True: 
                     #build a list of clients
                     clientList.append(self.convertHex(cmac))
-                elif self.ouiLookup.compKeyChk(postion) == True: #company oui lookup
-                    #check to see if its an company name we can lookup
-                    clientOuiList.extend(self.ouiLookup.lookup_company(postion))
-                elif self.ouiLookup.ouiKeyChk(postion) == True: #oui match
-                    #check to see if its an oui we can lookup
-                    clientOuiList = [postion] 
+                
+                elif companyCheck is not None:
+                    clientOuiList.extend(companyCheck)
+                
+                elif ouiCheck is not None:
+                    clientOuiList = [cmac]
+                
+                # set for removal
+                #elif self.ouiLookup.compKeyChk(postion) == True: #company oui lookup
+                #    #check to see if its an company name we can lookup
+                #    clientOuiList.extend(self.ouiLookup.lookup_company(postion))
+                #elif self.ouiLookup.ouiKeyChk(postion) == True: #oui match
+                #    #check to see if its an oui we can lookup
+                #    clientOuiList = [postion] 
                 else:
                     message.printMessage([
                         "\nInvalid mac or company name",
@@ -235,10 +247,14 @@ class parseFiles:
                     )
             # empty the var
             clientOuiList = []
-        # begin bssid parse
+        # begin bssid position parse
         if ruleSemi[2:pipe].upper() != "ANY":
             bssidMac = ruleSemi[2:pipe].replace("-", ":") 
             valid = self.validMacChk(bssidMac)
+            # lookup mac to make sure its a valid oui
+            ouiCheck = self.ouiLookup.search(bssidMac, 'm')
+            # lookup company to get a list of all company's ouis
+            companyCheck = self.ouiLookup.search(bssidMac, 'c')
             if valid == True :
                 # match mac address
                 bssidList = [self.convertHex(bssidMac)]
@@ -251,18 +267,33 @@ class parseFiles:
                     if essidList[bssid] == bssidMac:
                         bssidList.append(self.convertHex(bssid))
             
-            elif self.ouiLookup.compKeyChk(bssidMac) is True: # company oui lookup
-                bssidOuiList.extend(self.ouiLookup.lookup_company(bssidMac))
-                if bssidOuiList != []:
+            elif ouiCheck is not None:
+                bssidOuiList = [bssidMac]
+                for target in self.translateOUI(bssidOuiList,'b'):
+                    bssidList.append(self.convertHex(target))
+                bssidOuiList = [] # empty the var out
+            
+            elif companyCheck is not None:
+                bssidOuiList.extend(companyCheck)
+                if bssidOuiList ! = []:
                     for target in self.translateOUI(bssidOuiList,'b'):
                         bssidList.append(self.convertHex(target))
                     bssidOuiList = [] # empty var
-            elif self.ouiLookup.ouiKeyChk(bssidMac) is True: #oui match
-                # check to see if its an oui we can lookup
-                    bssidOuiList = [bssidMac]
-                    for target in self.translateOUI(bssidOuiList,'b'):
-                        bssidList.append(self.convertHex(target))
-                    bssidOuiList = [] # empty var
+                    
+
+            # set for removal
+            #elif self.ouiLookup.compKeyChk(bssidMac) is True: # company oui lookup
+            #    bssidOuiList.extend(self.ouiLookup.lookup_company(bssidMac))
+            #    if bssidOuiList != []:
+            #        for target in self.translateOUI(bssidOuiList,'b'):
+            #            bssidList.append(self.convertHex(target))
+            #        bssidOuiList = [] # empty var
+            #elif self.ouiLookup.ouiKeyChk(bssidMac) is True: #oui match
+            #    # check to see if its an oui we can lookup
+            #        bssidOuiList = [bssidMac]
+            #        for target in self.translateOUI(bssidOuiList,'b'):
+            #            bssidList.append(self.convertHex(target))
+            #        bssidOuiList = [] # empty var
             else:
                 message.printMessage([
                     "\nInvalid mac or company name",

@@ -166,7 +166,6 @@ class parseFiles:
         
         for key in db:
             if key[:3] in ouiLst:
-                pdb.set_trace()
                 clientLst.append(key)
         return clientLst
                 
@@ -217,7 +216,7 @@ class parseFiles:
                 # lookup mac to make sure its a valid oui
                 ouiCheck = self.ouiLookup.search(cmac, 'm')
                 # lookup company to get a list of all company's ouis
-                companyCheck = self.ouiLookup.search(postion, 'c')
+                companyCheck = self.ouiLookup.search(postion, 'c', True)
                 if self.validMacChk(cmac) == True: 
                     #build a list of clients
                     clientList.append(self.convertHex(cmac))
@@ -256,7 +255,7 @@ class parseFiles:
             # lookup mac to make sure its a valid oui
             ouiCheck = self.ouiLookup.search(bssidMac, 'm')
             # lookup company to get a list of all company's ouis
-            companyCheck = self.ouiLookup.search(bssidMac, 'c')
+            companyCheck = self.ouiLookup.search(bssidMac, 'c', True)
             if valid == True :
                 # match mac address
                 bssidList = [self.convertHex(bssidMac)]

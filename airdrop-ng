@@ -165,7 +165,8 @@ class parseFiles:
             db = self.airoAP.keys()
         
         for key in db:
-            if key[:8] in ouiLst:
+            if key[:3] in ouiLst:
+                pdb.set_trace()
                 clientLst.append(key)
         return clientLst
                 
@@ -222,7 +223,8 @@ class parseFiles:
                     clientList.append(self.convertHex(cmac))
                 
                 elif companyCheck is not None:
-                    clientOuiList.extend(companyCheck)
+                    for loui in companyCheck:
+                        clientOuiList.append(self.convertHex(loui))
                 
                 elif ouiCheck is not None:
                     clientOuiList = [cmac]
@@ -274,7 +276,8 @@ class parseFiles:
                 bssidOuiList = [] # empty the var out
             
             elif companyCheck is not None:
-                bssidOuiList.extend(companyCheck)
+                for loui in companyCheck:
+                    bssidOuiList.append(self.convertHex(loui))
                 if bssidOuiList != []:
                     for target in self.translateOUI(bssidOuiList,'b'):
                         bssidList.append(self.convertHex(target))

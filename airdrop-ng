@@ -450,15 +450,13 @@ class getTargets:
         place its output into the rule matcher
         """
         # extra copy here can probably remove
-        clientDb = self.Airv.clients
-        apDb = self.Airv.bss # dict of ap to essid
-        apdata = self.Airv.apData # data about a given access point
-        capr = self.Airv.capr
+        clientObjs = self.Airv.clientObjects
+        apObjs = self.Airv.apObjects
         # possible place to speed things up since we reparse rules acl
         # run the rules.txt file agasint known data 
         parsedRules = self.FileParsers.run(self.rules, (clientDb, apDb))
         # match clients in air to kick rules
-        rMatch = ruleMatch(parsedRules, capr, clientDb, apdata, self.debug)
+        rMatch = ruleMatch(parsedRules, clientObjs, apObjs, self.debug)
         # return the list of targets to kick
         return rMatch.ruleQue()
 
@@ -474,16 +472,14 @@ class ruleMatch:
     #NOTE in the future leave capr static and dont delete from it
     """
     
-    def __init__(self, rulesDB, capr, clientDb, apdata, debug):
+    def __init__(self, rulesDB, clientObjs, apObjs, debug):
         """
         create vars for rule matching
         """
         self.violators  = {}            # dict with bssid as a key and list 
                                         # of clients as nested list these cleints are our targets
-        self.rulesDB    = rulesDB       # rules database
-        self.capr       = capr          # client to ap relationship
-        self.apData     = apdata        # Access point dict contain all info about each Ap
-        self.clientDb   = clientDb      # client dict of client to bssid
+        self.clientObjs                 # clients objects
+        self.apObjs                     # accessPoint objects
         self.debug      = debug         # debug flag
         self.bssid      = None          # bssid of the rule we are looking at
         self.state      = None          # state of the rule either allow or deny

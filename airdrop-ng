@@ -112,7 +112,7 @@ class messages:
 
 class Rule:
     #The client or AP rule is the input to this class
-	def __init__(self,rule):
+	def __init__(self, rule):
 	    self.rule = rule
 		anymatch = re.compile('any',re.IGNORECASE)
 		for key in rule.keys():
@@ -122,7 +122,7 @@ class Rule:
 			    self.kickmethod = rule[key]
 			    del rule[key]
 
-	def match(self,obj):
+	def match(self, obj):
 		#There will need to be error handling here for if you try to compare a client to an AP rule or vice versa
 		obj_attributes = obj.__dict__
 		for key in obj_attributes.keys():
@@ -164,13 +164,13 @@ class parseFiles:
             message.printError("Please run airodump-ng-oui-update")
             self.exit(-1)
                     
-    def convertHex(self,mac):
+    def convertHex(self, mac):
         """
         convert a mac address to hex
         """
         return a2b_hex(mac.replace(":",""))
     
-    def translateOUI(self,ouiLst,flag):
+    def translateOUI(self, ouiLst, flag):
         """
         take an oui and find all matching mac addresses
         in the sniffed data
@@ -224,7 +224,7 @@ class parseFiles:
         ruleList        = ruleParse(fileName)
         return ruleList
     
-    def validMacChk(self,mac):
+    def validMacChk(self, mac):
         """
         Check for valid mac address
         If Invalid exit and print invalid mac and error msg to user

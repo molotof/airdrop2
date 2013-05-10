@@ -116,6 +116,10 @@ class Rule:
 	    self.rule = rule
 		anymatch = re.compile('any',re.IGNORECASE)
 		for key in rule.keys():
+			# Note there could be a bug here if it doesn't get named the same in client obj.
+			if key == "company":
+				#Build a greedy, case-ignoring regex to match off of
+				self.companymatch = re.compile(rule[key]+".*",re.IGNORECASE)
 			if anymatch.match(rule[key]):
 			    self.any = True
 			if key == "kickmethod":
@@ -130,7 +134,20 @@ class Rule:
 				# If it says any in the rule, realize that and drop it
 			    if any:
 					result = True
-				elif isinstance(self.rule[key],type.ListType):    #Detect Lists
+				# Company Name Match
+				if key == "company":
+					# If it's a list of companies
+					if isinstance(self.rule[key],type.ListType):
+						for item in rule['company']:
+							# Do any items in the list match our object?
+							if self.companymatch.match(item):
+								result = True
+								break
+					elif self.companymatch.match(obj_attributes[key]):
+						result = True
+
+				# Detect Lists
+				elif isinstance(self.rule[key],type.ListType):
 					result = obj_attributes[key] in self.rule[key]
 				elif obj_attributes[key] == self.rule[key]:
 					result = True

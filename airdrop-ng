@@ -189,13 +189,13 @@ class parseFiles:
                 clientLst.append(key)
         return clientLst
                 
-    def ruleParse(self, file):
+    def ruleParse(self, filename):
         ap_rules = []
         client_rules = []
         apmatch = re.compile('ap',re.IGNORECASE)
 	    clientmatch = re.compile('client',re.IGNORECASE)
-	    with open(file,'r') as rulefile:
-	        json_data = open(file)
+	    with open(filename, 'r') as rulefile:
+	        json_data = open(filename)
 			try:
 	            data = json.load(json_data)
 			except:

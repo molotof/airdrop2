@@ -163,25 +163,7 @@ class parseFiles:
                     message.printError(["oui.txt not found in " + path])
             message.printError("Please run airodump-ng-oui-update")
             self.exit(-1)
-
-    #######DEPRECATED~!###########
-    def fileOpen(self, name):
-    ##############################
-        """
-        Open the file and read in the rules and remove \\n characters
-        """
-        try:
-            openFile = open(name, "r")
-        except IOError,e:
-            message.printError("\nAirdrop-ng rule file %s does not exist" %(name))
-            sexit(-1)
-        rules = openFile.xreadlines()
-        cleanedRules = []
-        for line in rules:
-            cleanedRules.append(line.rstrip())
-        openFile.close()
-        return cleanedRules
-        
+                    
     def convertHex(self,mac):
         """
         convert a mac address to hex
@@ -218,6 +200,7 @@ class parseFiles:
 	            data = json.load(json_data)
 			except:
 			    print "The JSON configuration file failed to parse.  See the examples"
+            # Determine if this is an ap or client rule, then place in the right list
 			for key in data.keys():
 			    type = data[key]['type']
 			    del data[key]['type']
@@ -230,29 +213,6 @@ class parseFiles:
 				    exit()
 		return [ap_rules,client_rules]
     
-    def validChk(self,rule):
-        """
-        find commented lines
-        """
-        ruleStrip = rule.strip('\t').lstrip()
-        if ruleStrip == "":
-            return False
-        elif ruleStrip[0] == "#":
-            return False
-        else:
-            return True
-    
-    def commentOff(self, rules):
-        """
-        This is a horrible hack but the idea is to remove the commented lines
-        """
-        validRules = []
-        while len(rules) != 0:
-            chkme = rules.pop()
-            if self.validChk(chkme) == True:
-                validRules.append(chkme.strip('\t').lstrip())
-        return validRules
-    
     def run(self, fileName, AiroDBs):
         """
         populate ruleList
@@ -260,19 +220,8 @@ class parseFiles:
         #are the airoDB's used by translate ouis
         self.airoClient = AiroDBs[0]#airodump client db
         self.airoAP     = AiroDBs[1]#airodump ap DB
-        fileRules       = self.fileOpen(fileName)
-        rawRules        = self.commentOff(fileRules)
-        ruleList        = {}
-        ruleCounter = 0
-        rawRules.reverse() #reverse the rules as they get loaded in backwards
         message.printMessage(["Parsing Rules"])
-        for rule in rawRules: #populate ruleList 
-            prule = self.ruleParse(rule)
-            ruleCounter += 1
-            if prule != False:
-                    ruleList[ruleCounter] = prule
-            else:
-                continue
+        ruleList        = ruleParse(fileName)
         return ruleList
     
     def validMacChk(self,mac):
@@ -291,7 +240,7 @@ class parseFiles:
 
 class getTargets:
     """
-    Call parser for the airodump csv file and rule files
+    Get Targets from Airview and parse rule files
     """
     def __init__(self, toolinstance, rules, debug):
         """
@@ -303,9 +252,10 @@ class getTargets:
         #prep the oui lookup tables
         self.FileParsers.ouiDB()
         # start up the sniffer and airview 
-        self.rules       = rules  # file name of rules file
+        self.clientRules = rules[1]
+        self.apRules     = rules[0]
         self.debug       = debug  # debug flag
-        self.targets     = None   # var to store matched targets in
+        self.targets     = []   # var to store matched targets in
 
     def dataParse(self):
         """
@@ -315,13 +265,21 @@ class getTargets:
         # extra copy here can probably remove
         clientObjs = self.Airv.clientObjects
         apObjs = self.Airv.apObjects
-        # possible place to speed things up since we reparse rules acl
-        # run the rules.txt file agasint known data 
-        parsedRules = self.FileParsers.run(self.rules, (clientDb, apDb))
+
         # match clients in air to kick rules
-        rMatch = ruleMatch(parsedRules, clientObjs, apObjs, self.debug)
-        # return the list of targets to kick
-        return rMatch.ruleQue()
+        self.targets = []
+        for client in clientObjs:
+            for clientRule in self.clientRules:
+                if clientRule.match(client):
+                    client.kickmethod = clientRule.kickmethod
+                	self.targets.append(client)
+        for ap in apObjs:
+        	for apRule in self.apRules:
+        		if apRule.match(ap):
+        		    ap.kickmethod = apRule.kickmethod
+        			self.targets.append(ap)
+         # return the list of targets to kick
+        return self.targets
 
     def run(self):
         """
@@ -329,362 +287,6 @@ class getTargets:
         """
         self.targets, self.CTAT = self.dataParse()
 
-class ruleMatch:
-    """
-    Do Rule matching
-    #NOTE in the future leave capr static and dont delete from it
-    """
-    
-    def __init__(self, rulesDB, clientObjs, apObjs, debug):
-        """
-        create vars for rule matching
-        """
-        self.violators  = {}            # dict with bssid as a key and list 
-                                        # of clients as nested list these cleints are our targets
-        self.clientObjs                 # clients objects
-        self.apObjs                     # accessPoint objects
-        self.debug      = debug         # debug flag
-        self.bssid      = None          # bssid of the rule we are looking at
-        self.state      = None          # state of the rule either allow or deny
-        self.clients    = []            # client list that are affected by the rules
-        self.rule       = None          # entire rule so we can print for debug mode
-        self.Client     = None          # the client we are currently working with
-        self.fullRule   = None          # the entire dict for printing in error messages
-        self.num        = None          # number of rule we are matching
-        self.CTAT       = {}            # client to attack type listing
-                                        # allows differnt attacks based on rules
-
-    def locate_key(self):
-        """
-        take a client and locate its coresponding bssid
-        iterate though capr and find unknown bssid a client is 
-        associated with
-        """
-        for bssidKey in self.capr.keys():
-            if self.Client in self.capr[bssidKey]:
-                client_bssid = bssidKey
-                #break at first match
-                break
-            else:
-                #return none in client cant
-                #be found in capr
-                client_bssid = None
-        return client_bssid
-    
-    def rm_dupe(self, List):
-        """
-        Remove duplicates from list
-        """
-        dict = {}
-        for item in List:
-            dict[item]=item
-        return dict.values()
-    
-    def nullVars(self):
-        """
-        null out the ruleQue vars between rules
-        """
-        self.bssid      = None          # bssid of the rule we are looking at
-        self.state      = None          # state of the rule either allow or deny
-        self.clients    = []            # client list that are affected by the rules
-        self.rule       = None          # entire rule so we can print for debug mode
-        self.Client     = None          # the client we are currently working with
-        self.fullRule   = None          # the entire dict for printing in error messages
-        self.num        = None          # number of rule we are matching
-
-    def ruleQue(self):
-        """
-        set global class values one at a time
-        then call matcher
-        """
-        for num in sorted(self.rulesDB.keys()):
-            #make sure the rules are called in order
-            #it stops iterating at one less then we need so add +1
-            self.nullVars()
-            if type(self.rulesDB[num]).__name__ == "list":
-                for rule in self.rulesDB[num]:
-                    self.bssid    = rule["bssid"]
-                    self.state    = rule["state"]
-                    self.clients  = rule["clients"]
-                    self.rule     = rule["raw"]
-                    self.fullRule = str(rule)
-                    self.num      = str(num)
-                    self.attacktype = rule["attacktype"]
-                    self.match() #call matching
-            else:
-                self.bssid    = self.rulesDB[num]["bssid"]
-                self.state    = self.rulesDB[num]["state"]
-                self.clients  = self.rulesDB[num]["clients"]
-                self.rule     = self.rulesDB[num]["raw"]
-                self.fullRule = str(self.rulesDB[num])
-                self.num      = str(num)
-                self.attacktype = self.rulesDB[num]["attacktype"]
-                self.match() #call matching
-        return (self.violators, self.CTAT) #return kicklist and attack types
-    
-    def CTATstore(self, clients, atype):
-        """
-        map an attack type to a given client
-        clients = list of clients to map to a rule
-        atype = rule number attack type
-        """
-        for client in clients:
-            for num in atype:
-                if client in self.CTAT.keys():
-                    # abuse dict uniqe keys
-                    self.CTAT[client][num] = ''
-                else:
-                    self.CTAT[client] = {num: ''}
-    def match(self):
-        """
-        Main list of rule conditions to check
-        """
-        if self.bssid != "ANY":
-            if self.bssid in self.apData.keys():
-                self.channel = self.apData[self.bssid]["channel"]
-                #if this var doesnt get set it casues an error
-            else:
-                message.printMessage([
-                    "\nInvaid bssid %s not found in sniffed data" %(self.bssid.encode('hex')),
-                    "Rule number %s" %(self.num), self.rule, 
-                    "Moving to next rule\n"])
-                return
-        # clients taking too long to show up...
-        # bug here..
-        #pdb.set_trace()
-        #print self.apData
-        #start rule matching
-        if self.bssid in self.capr.keys() or self.bssid == 'ANY':  
-            #check to make sure we have target bssid in capr
-            #start allow rule matching
-            if self.state == "a":
-                if self.bssid != "ANY" and self.clients != "ANY": 
-                    #allow client to bssid rule matching
-                        #if no any's delete clients we want to allow from capr 
-                        #the rest are valid targets
-                    for client in self.clients:
-                        #update current working client
-                        self.Client = client 
-                        try: 
-                            #atempt to remove client from capr dict
-                            position = self.capr[self.bssid].index(self.Client)
-                            del self.capr[self.bssid][position]
-                        except ValueError:
-                            pass
-                    if self.bssid in self.violators.keys():
-                        #set allow bcast to False
-                        self.violators[self.bssid][0]["allow"] = False
-                        #set channel incase it has changed
-                        self.violators[self.bssid][0]["channel"] = self.channel 
-                    else:
-                        self.violators[self.bssid] = [
-                                {"allow":False, "channel":self.channel}, #support data
-                                [] #empty client list
-                                ]
-
-                        if self.debug == True: #debug flag
-                            message.printMessage(["Rule Number "+self.num,
-                            self.rule, self.fullRule,
-                            "Allow "+str(self.clients)+" client to "+self.bssid+" bssid\n"])
-
-                
-                elif self.bssid != "ANY" and self.clients == "ANY": # 
-                    #allow bssid any client rule matching
-                    #remove the bssid and all clients from our target list
-                    del self.capr[self.bssid] 
-                    #remove the clients and the bssid from the target list 
-                    #potential bug
-                    if self.debug == True:
-                        message.printMessage(["Rule Number "+self.num,
-                            self.rule, self.fullRule,
-                            "\nAll clients allowed to talk to "+self.bssid+" bssid",
-                            "No packets will be sent"])
-                
-                elif self.bssid == "ANY" and self.clients == "ANY":
-                    #allow any any rule matching
-                    if self.debug == True:
-                        message.printMessage(["Rule Number "+self.num,
-                            self.rule,self.fullRule,
-                            "All clients are allowed to all Aps No packets will be sent\n"])
-                    
-                    message.printMessage(["\nReached "+self.rule+" "+self.fullRule,
-                    "Rule Number "+self.num,
-                    "Rule is allow any any no Packets will be sent"])
-                    sexit(0)
-                
-                elif self.bssid == "ANY" and self.clients != "ANY":
-                    #allow some clients to talk to any AP
-                    for client in self.clients:
-                        self.Client = client
-                        self.bssid = self.locate_key()
-                        #look up each client and update self.bssid
-                        if self.bssid == None:
-                            message.printMessage([
-                                "\nClient "+self.Client+" not found in sniffed data,",
-                                "Client will be ignored"])
-                            #continue #skip this client and move on to the next in the for loop
-                            return
-                        else: 
-                            #set channel
-                            self.channel = self.apData[self.bssid]["channel"]
-                        try:
-                            #locate the clients postion in capr
-                            position = self.capr[self.bssid].index(self.Client)
-                            del self.capr[self.bssid][position] #remove it from capr
-                        except ValueError:
-                            pass
-                        
-                        if self.bssid in self.violators.keys():
-                            self.violators[self.bssid][0]["allow"] = False
-                            self.violators[self.bssid][0]["channel"] = self.channel
-                        else:
-                            self.violators[self.bssid] = [
-                                    {"allow":False, "channel":self.channel}, #support data
-                                    [] #empty client list
-                                    ]
-                        
-                        if self.debug == True:
-                            message.printMessage(["Rule Number %s",
-                            self.rule, self.fullRule,
-                            "Allow %s client to %s bssid\n" %(self.num. self.Client, self.bssid)])
-                else: 
-                    message.printError(["ERROR in config file at:",
-                        "Rule Numer "+self.num,
-                        self.rule,self.rulesDB,
-                        "Could not match %s or %s",
-                        "Please check the rule and try again" %(self.bssid, self.clients)])
-                    sexit(-1)
-            
-            # deny rule matching
-            elif self.state == "d":
-                if self.bssid == "ANY" and self.clients == "ANY": #global deauth
-                    #any any match rule
-                    message.printMessage(["\nReached global deauth at rule %s" %(self.rule),
-                        "Rule Number %s" %(self.num),
-                        "All clients that dont have a rule will be kicked at this point"])
-                    for key in self.capr.keys(): #looping though to allow channel lookup
-                        self.bssid = key
-                        if self.bssid in self.apData.keys():
-                            self.channel = self.apData[self.bssid]["channel"]
-                        else:
-                            # this shouldnt happen but if it does set to 6
-                            self.channel = 6
-                        if self.bssid in self.violators.keys():
-                            # we assume at this point that the bcast allow has been set
-                            self.CTATstore(self.capr[self.bssid], self.attacktype)
-                            self.violators[self.bssid][1].extend(
-                                    self.capr[self.bssid] #add all clients
-                                    )
-                            # update channel incase it changed
-                            self.violators[self.bssid][0]["channel"] = self.channel
-                        else:
-                            self.CTATstore(self.capr[self.bssid], self.attacktype)
-                            self.violators[self.bssid] = [
-                                    {"allow":True,"channel":self.channel}, #support data
-                                    self.capr[self.bssid] #list of clients to kick 
-                                    ]
-                    
-                        if self.debug == True:
-                            message.printMessage(["Rule Number "+self.num,
-                            self.rule,self.fullRule,
-                            "Deny "+str(self.capr[self.bssid])+" client to "+self.bssid+" bssid\n"])
-                    #may change to a break since its an any any
-                    #continue #move on to the next rule in the list later ill prob break the iteration? 
-                
-                elif self.bssid == "ANY" and self.clients != 'ANY':
-                    #deny any AP and select clients
-                    for client in self.clients:
-                        self.Client = client
-                        self.bssid  = self.locate_key()
-                        if self.bssid == None:
-                            message.printMessage(["Unable to locate bssid for client %s" %(client.encode('hex')),
-                                " Skipping\n"])
-                            continue
-                        #set channel
-                        self.channel = self.apData[self.bssid]["channel"]
-                        if self.bssid  == None:
-                            message.printMessage(["Client "+self.Client+" not found in sniffed data",
-                                "client will be ignored"])
-                            #continue #skip this client and move on to the next in the for loop
-                            continue 
-
-                        if self.bssid in self.capr.keys(): #checking for valid targets
-                            if self.bssid in self.violators.keys():
-                                #extend the list of targets
-                                self.CTATstore(self.capr[self.bssid], self.attacktype)
-                                self.violators[self.bssid][1].append(self.Client)
-                                self.violators[self.bssid][0]["channel"] = self.channel
-                            else:
-                                self.CTATstore(self.capr[self.bssid], self.attacktype)
-                                self.violators[self.bssid] = [
-                                    {"allow":False,"channel":self.channel},
-                                    [self.Client]
-                                    ]
-                        
-                        if self.debug == True:
-                            message.printMessage(["Rule Number "+self.num,
-                                self.rule,self.fullRule,
-                                "Deny "+self.Client+" client to "+self.bssid+" bssid\n"])
-                
-                elif self.bssid != "ANY" and self.clients == "ANY":
-                    #deny client any rule matching
-                    if self.bssid in self.violators.keys():
-                        self.CTATstore(self.capr[self.bssid], self.attacktype)
-                        self.violators[self.bssid][1].extend(self.capr[self.bssid])
-                        #remove any duplicate entries
-                        self.violators[self.bssid][1] = self.rm_dupe(self.violators[self.bssid][1])
-                        self.violators[self.bssid][0]["channel"] = self.channel
-                    else:
-                        self.CTATstore(self.capr[self.bssid], self.attacktype)
-                        self.violators[self.bssid] = [
-                                {"allow":True,"channel":self.channel},
-                                self.capr[self.bssid]
-                                ]
-                            
-                    if self.debug == True:
-                        for client in self.violators[self.bssid][1]:
-                            message.printMessage(["Rule Number "+self.num,
-                                self.rule,self.fullRule,
-                                "Deny "+client+" clients to "+self.bssid+" bssid\n"])
-                
-                elif self.bssid != "ANY" and self.clients != "ANY":
-                    #deny between client and AP no anys used
-                    for client in self.clients:
-                        #do the following checks for each client
-                        self.Client = client
-                        if self.Client not in self.capr[self.bssid]:
-                            #if current client doesnt belong to current ap
-                            #dont generate a packet for it
-                            if self.debug == True:
-                                message.printMessage(["Rule Number "+self.num,
-                                    self.rule,self.fullRule,
-                                    "Client "+self.Client+" not attached to "+self.bssid,
-                                    "Moving on\n"])
-                            continue
-                        if self.bssid in self.violators.keys():
-                            self.CTATstore(self.capr[self.bssid], self.attacktype)
-                            self.violators[self.bssid][1].append(self.Client)
-                        else:
-                            self.CTATstore(self.capr[self.bssid], self.attacktype)
-                            self.violators[self.bssid] =[
-                                {"allow":False,"channel":self.channel},
-                                [self.Client]]
-                        
-                        if self.debug == True:
-                            message.printMessage(["Rule Number "+self.num,
-                                self.rule,self.fullRule,
-                                "Deny "+self.Client+" client to "+self.bssid+" bssid\n"])
-                        #do final processing on all affected clients
-                        #remove duplicates
-                        self.violators[self.bssid][1] = self.rm_dupe(self.violators[self.bssid][1])
-                        #update channel on the card incase it changed
-                        self.violators[self.bssid][0]["channel"] = self.channel
-            else:
-                message.printMessage(["Config file error at line",
-                    self.rule,self.rulesDB[num],
-                    "State must be either an a for allow or d for deny"])
-                sexit(-1)
-        return self.violators
 
 class Kicker:
     """
@@ -693,17 +295,47 @@ class Kicker:
     def __init__(self, ctx):
         self.lorconCtx = ctx
         self.engine = Gen80211.packetGenerator()
-    
-    def makeMagic(self, targets, attacks, pnap = 0):
+
+    # We're going to need to adjust targets to be matched to attack
+    def makeMagic(self, targets, pnap = 0):
         """
         function where the targes are looped though 
         and packets are sent to them
         """
+        # Targets are the ap and client objects tagged up by the matches
         # speed improvments to be found here if we thread packet generator
         packetQue = []
         # hard coded number of how many copys of each packet is sent
         packetCount = 1 
         # as reminder 0 = all, 1 = deauth, 2 auth, 3 reauth, 4 wds
+        for obj in targets:
+        	#Get the object type.  Will return "ap" or "client" depending on the spelling of the name of the class in the tool lib
+        	obj.type = obj.__class__.__name__
+        	
+        	#OK we need to drop a client, here's the path for that.
+			if obj.type == "client":
+				ap = obj.bssid
+				kickmethod = obj.kickmethod
+				
+				#set the vars that act as the parameters to the deauthengine
+				
+				#we will see about static assignment above this for loop to save speed
+				kick = {
+							0:packetQue.extend(self.engine.deauthPacketEngine())
+							1:packetQue.extend(self.engine.deauthPacketEngine())
+							2:packetQue.extend(self.engine.deauthPacketEngine())
+							3:packetQue.extend(self.engine.deauthPacketEngine())
+							4:packetQue.extend(self.engine.deauthPacketEngine())
+				}
+				
+				#pew pew pew! Fire deauth packets!
+				kick[kickmethod]
+				
+			elif obj.type == "accessPoint": # I Disagree with this camelcase
+				pass # currently unimplemented.  Will hold autoimmune attacks
+				
+				
+""" #OLD SHIZ
         for bssid in targets:
             for client in targets[bssid][1]:
                  if client in attacks.keys():
@@ -744,6 +376,8 @@ class Kicker:
                             targets[bssid][0]["channel"]
                             ))
                     
+""" #End old Shiz
+
         numPackets = len(packetQue)
         message.printMessage(
             "\nAttempting to TX %i packets %i times each" %(numPackets, packetCount))
@@ -807,7 +441,35 @@ class AdMain:
         self.TotalPacket = 0
         # check if were root, exit if were not
         self.uidCheck() 
+		self.rules = self.parseRules()
 
+	def parseRules(self,args):
+	    ap_rules = []
+        client_rules = []
+        apmatch = re.compile('ap',re.IGNORECASE)
+	    clientmatch = re.compile('client',re.IGNORECASE)
+	    with open(args.rule,'r') as rulefile:
+	        json_data = open(file)
+			try:
+	            data = json.load(json_data)
+			except:
+			    print "The JSON configuration file failed to parse.  See the examples"
+            # Determine if this is an ap or client rule, then place in the right list
+			for key in data.keys():
+			    type = data[key]['type'] # The Type refers to the rule being for clients or access points
+				attack = data[key]['attack'] # Attack refers to what kind of wireless deauth we will perform			    
+			    del data[key]['type']
+			    del data[key]['attack']
+			    if apmatch.match(type):
+			    	ap_rules.append(Rule(data[key]))
+				elif apmatch.match(type):
+				    client_rules.append(Rule(data[key]))
+				else:
+				    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
+				    exit()
+		return [ap_rules,client_rules]
+
+			
     def mloop(self, args):
         """
         main program loop
@@ -822,15 +484,16 @@ class AdMain:
             airview = Tool80211.Airview(args.card)
             # start the sniffer
             airview.start()
-            Targeting = getTargets(airview, args.rule, args.debug)
+            #send the sniffer and the rules and get matches
+            Targeting = getTargets(airview,self.rules,args.debug)
             #set zero packet flag to false
             zp = False
             # set up kicker
             daKicker = Kicker(airview.ctx)
             while True:
-                    Targeting.run() 
+                    Targeting.run()
                     if Targeting.targets != None:
-                        rtnPktCount = daKicker.makeMagic(Targeting.targets, Targeting.CTAT, int(args.pnap))
+                        rtnPktCount = daKicker.makeMagic(Targeting.targets, int(args.pnap))
                         if rtnPktCount == 0:
                             message.printMessage(
                                 "Zero Packets were to be sent, Napping for 5 sec to await changes in sniffed data\n")

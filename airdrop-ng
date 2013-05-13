@@ -16,6 +16,7 @@ from sys import exit as sexit
 import types
 import json
 
+# Todo: only compare values of rule to values of tool wifiobjects that exist
 
 #for debug
 import pdb
@@ -165,122 +166,18 @@ class Rule:
             except KeyError:
                 print "Rule Error -- That attribute doesn't exist in the client or AP object"
 
-class parseFiles:
-    """
-    parse users acl rules into a dict for matching
-    """
-    def ouiDB(self):
-        """
-        ouidata base lookup
-        find oui.txt and parse it
-        """
-        try:    
-            try:
-                self.ouiLookup = liboui2.Oui("./support/oui.txt")
-            except IOError:
-                path = install_dir + "support/oui.txt"
-                self.ouiLookup = liboui2.Oui(path)
-        except IOError:
-            for path in liboui2.OUIPATH:
-                    message.printError(["oui.txt not found in " + path])
-            message.printError("Please run airodump-ng-oui-update")
-            self.exit(-1)
-                    
-    def convertHex(self, mac):
-        """
-        convert a mac address to hex
-        """
-        return a2b_hex(mac.replace(":",""))
-    
-    def translateOUI(self, ouiLst, flag):
-        """
-        take an oui and find all matching mac addresses
-        in the sniffed data
-        """
-        clientLst =[] #empty client list to hold are found clients
-        # check if were doing client oui check or bssid oui check
-        # client check
-        if flag == 'c':
-            db = self.airoClient.keys()
-        # ap keys
-        elif flag == 'b':
-            db = self.airoAP.keys()
-        
-        for key in db:
-            if key[:3] in ouiLst:
-                clientLst.append(key)
-        return clientLst
-                
-    def ruleParse(self, filename):
-        ap_rules = []
-        client_rules = []
-        apmatch = recompile('ap',IGNORECASE)
-        clientmatch = recompile('client',IGNORECASE)
-        with open(filename, 'r') as rulefile:
-            json_data = open(filename)
-            try:
-                data = json.load(json_data)
-            except:
-                print "The JSON configuration file failed to parse.  See the examples"
-            # Determine if this is an ap or client rule, then place in the right list
-            for key in data.keys():
-                try:
-                    type = data[key]['type']
-                except KeyError:
-                    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
-                    sexit(-1)
-                del data[key]['type']
-                if apmatch.match(type):
-                    ap_rules.append(Rule(data[key]))
-                elif apmatch.match(type):
-                    client_rules.append(Rule(data[key]))
-                else:
-                    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
-                    sexit(-1)
-
-        return [ap_rules,client_rules]
-    
-    def run(self, fileName, AiroDBs):
-        """
-        populate ruleList
-        """
-        #are the airoDB's used by translate ouis
-        self.airoClient = AiroDBs[0]#airodump client db
-        self.airoAP     = AiroDBs[1]#airodump ap DB
-        message.printMessage(["Parsing Rules"])
-        ruleList        = ruleParse(fileName)
-        return ruleList
-    
-    def validMacChk(self, mac):
-        """
-        Check for valid mac address
-        If Invalid exit and print invalid mac and error msg to user
-        """
-        # regex will match format of 
-        # DE:AD:BE:EF:00:00 or DE-AD-BE-EF-00-00
-        check = '([a-fA-F0-9]{2}[:|\-]?){6}'
-        # from re
-        if match(check, mac): 
-            return True 
-        else: 
-            return False
 
 class getTargets:
     """
     Get Targets from Airview and parse rule files
     """
-    def __init__(self, toolinstance, rules, debug):
+    def __init__(self, toolinstance, rulefile, debug):
         """
         Init with all vars for getTargets class
         """
+        self.rulefile = rulefile
         self.Airv = toolinstance
-        # create file parser instance
-        self.FileParsers = parseFiles()
-        #prep the oui lookup tables
-        self.FileParsers.ouiDB()
         # start up the sniffer and airview 
-        self.clientRules = rules[1]
-        self.apRules     = rules[0]
         self.debug       = debug  # debug flag
         self.targets     = []   # var to store matched targets in
 
@@ -289,6 +186,33 @@ class getTargets:
         parse the user provided rules and 
         place its output into the rule matcher
         """
+        # Parse the rules
+        ap_rules = []
+        client_rules = []
+        apmatch = recompile('ap', IGNORECASE)
+        clientmatch = recompile('client', IGNORECASE)
+        with open(rulefile, 'r') as json_data:
+            try:
+                data = json.load(json_data)
+            except Exception, e:
+                print e
+                print "The JSON configuration file failed to parse.  See the examples"
+                sexit(-1)
+            # Determine if this is an ap or client rule, then place in the right list
+            for key in data.keys():
+                type = data[key]['type'] # The Type refers to the rule being for clients or access points
+                attack = data[key]['attack'] # Attack refers to what kind of wireless deauth we will perform                
+                del data[key]['type']
+                del data[key]['attack']
+                if apmatch.match(type):
+                    ap_rules.append(Rule(data[key]))
+                elif apmatch.match(type):
+                    client_rules.append(Rule(data[key]))
+                else:
+                    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
+                    exit()
+        #self.rules = [ap_rules, client_rules]
+        
         # extra copy here can probably remove
         clientObjs = self.Airv.clientObjects
         apObjs = self.Airv.apObjects
@@ -296,12 +220,12 @@ class getTargets:
         # match clients in air to kick rules
         self.targets = []
         for client in clientObjs:
-            for clientRule in self.clientRules:
+            for clientRule in client_rules:
                 if clientRule.match(client):
                     client.kickmethod = clientRule.kickmethod
                     self.targets.append(client)
         for ap in apObjs:
-            for apRule in self.apRules:
+            for apRule in ap_rules:
                 if apRule.match(ap):
                     ap.kickmethod = apRule.kickmethod
                     self.targets.append(ap)
@@ -312,7 +236,7 @@ class getTargets:
         """
         reparse all data every 4 seconds
         """
-        self.targets, self.CTAT = self.dataParse()
+        self.targets = self.dataParse()
 
 
 class Kicker:
@@ -448,34 +372,6 @@ class AdMain:
         self.TotalPacket = 0
         # check if were root, exit if were not
         self.uidCheck() 
-
-    def parseRules(self, args):
-        ap_rules = []
-        client_rules = []
-        apmatch = recompile('ap', IGNORECASE)
-        clientmatch = recompile('client', IGNORECASE)
-        with open(args.rule, 'r') as json_data:
-            try:
-                data = json.load(json_data)
-            except Exception, e:
-                print e
-                print "The JSON configuration file failed to parse.  See the examples"
-                sexit(-1)
-            # Determine if this is an ap or client rule, then place in the right list
-            for key in data.keys():
-                type = data[key]['type'] # The Type refers to the rule being for clients or access points
-                attack = data[key]['attack'] # Attack refers to what kind of wireless deauth we will perform                
-                del data[key]['type']
-                del data[key]['attack']
-                if apmatch.match(type):
-                    ap_rules.append(Rule(data[key]))
-                elif apmatch.match(type):
-                    client_rules.append(Rule(data[key]))
-                else:
-                    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
-                    exit()
-        self.rules = [ap_rules, client_rules]
-
             
     def mloop(self, args):
         """
@@ -492,7 +388,7 @@ class AdMain:
             # start the sniffer
             airview.start()
             #send the sniffer and the rules and get matches
-            Targeting = getTargets(airview,self.rules,args.debug)
+            Targeting = getTargets(airview,args.rule,args.debug)
             #set zero packet flag to false
             zp = False
             # set up kicker

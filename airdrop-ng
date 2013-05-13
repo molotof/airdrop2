@@ -112,53 +112,53 @@ class messages:
 
 class Rule:
     # The client or AP rule is the input to this class
-	def __init__(self, rule):
-	    self.rule = rule
-		anymatch = re.compile('any',re.IGNORECASE)
-		for key in rule.keys():
-			# Note there could be a bug here if it doesn't get named the same in client obj.
-			if key == "company":
-				#Build a greedy, case-ignoring regex to match off of
-				self.companymatch = re.compile(rule[key]+".*",re.IGNORECASE)
-			if anymatch.match(rule[key]):
-			    self.any = True
-			if key == "kickmethod":
-			    self.kickmethod = rule[key]
-			    del rule[key]
+    def __init__(self, rule):
+        self.rule = rule
+        anymatch = re.compile('any', re.IGNORECASE)
+        for key in rule.keys():
+            # Note there could be a bug here if it doesn't get named the same in client obj.
+            if key == "company":
+                #Build a greedy, case-ignoring regex to match off of
+                self.companymatch = re.compile(rule[key]+".*", re.IGNORECASE)
+            if anymatch.match(rule[key]):
+                self.any = True
+            if key == "kickmethod":
+                self.kickmethod = rule[key]
+                del rule[key]
 
-	def match(self, obj):
-		# There will need to be error handling here for if you try to compare a client to an AP rule or vice versa
-		obj_attributes = obj.__dict__
-		for key in obj_attributes.keys():
-			try:
-				# If it says any in the rule, realize that and drop it
-			    if any:
-					result = True
-				# Company Name Match
-				if key == "company":
-					# If it's a list of companies
-					if isinstance(self.rule[key],type.ListType):
-						for item in rule['company']:
-							# Do any items in the list match our object?
-							if self.companymatch.match(item):
-								result = True
-								break
-					elif self.companymatch.match(obj_attributes[key]):
-						result = True
+    def match(self, obj):
+        # There will need to be error handling here for if you try to compare a client to an AP rule or vice versa
+        obj_attributes = obj.__dict__
+        for key in obj_attributes.keys():
+            try:
+                # If it says any in the rule, realize that and drop it
+                if any:
+                    result = True
+                # Company Name Match
+                if key == "company":
+                    # If it's a list of companies
+                    if isinstance(self.rule[key],type.ListType):
+                        for item in rule['company']:
+                            # Do any items in the list match our object?
+                            if self.companymatch.match(item):
+                                result = True
+                                break
+                    elif self.companymatch.match(obj_attributes[key]):
+                        result = True
 
-				# Detect Lists
-				elif isinstance(self.rule[key],type.ListType):
-					result = obj_attributes[key] in self.rule[key]
-				elif obj_attributes[key] == self.rule[key]:
-					result = True
-				else:
-					result = False
-				# Print the match to the user if there was a match on the rule
-				if result:
-				    print "Matched on: " + str(obj_attributes[key])
-				return result
-			except KeyError:
-			    print "Rule Error -- That attribute doesn't exist in the client or AP object"
+                # Detect Lists
+                elif isinstance(self.rule[key],type.ListType):
+                    result = obj_attributes[key] in self.rule[key]
+                elif obj_attributes[key] == self.rule[key]:
+                    result = True
+                else:
+                    result = False
+                # Print the match to the user if there was a match on the rule
+                if result:
+                    print "Matched on: " + str(obj_attributes[key])
+                return result
+            except KeyError:
+                print "Rule Error -- That attribute doesn't exist in the client or AP object"
 
 class parseFiles:
     """
@@ -210,25 +210,25 @@ class parseFiles:
         ap_rules = []
         client_rules = []
         apmatch = re.compile('ap',re.IGNORECASE)
-	    clientmatch = re.compile('client',re.IGNORECASE)
-	    with open(filename, 'r') as rulefile:
-	        json_data = open(filename)
-			try:
-	            data = json.load(json_data)
-			except:
-			    print "The JSON configuration file failed to parse.  See the examples"
+        clientmatch = re.compile('client',re.IGNORECASE)
+        with open(filename, 'r') as rulefile:
+            json_data = open(filename)
+            try:
+                data = json.load(json_data)
+            except:
+                print "The JSON configuration file failed to parse.  See the examples"
             # Determine if this is an ap or client rule, then place in the right list
-			for key in data.keys():
-			    type = data[key]['type']
-			    del data[key]['type']
-			    if apmatch.match(type):
-			    	ap_rules.append(Rule(data[key]))
-				elif apmatch.match(type):
-				    client_rules.append(Rule(data[key]))
-				else:
-				    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
-				    exit()
-		return [ap_rules,client_rules]
+            for key in data.keys():
+                type = data[key]['type']
+                del data[key]['type']
+                if apmatch.match(type):
+                    ap_rules.append(Rule(data[key]))
+                elif apmatch.match(type):
+                    client_rules.append(Rule(data[key]))
+                else:
+                    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
+                    exit()
+        return [ap_rules,client_rules]
     
     def run(self, fileName, AiroDBs):
         """
@@ -289,12 +289,12 @@ class getTargets:
             for clientRule in self.clientRules:
                 if clientRule.match(client):
                     client.kickmethod = clientRule.kickmethod
-                	self.targets.append(client)
+                    self.targets.append(client)
         for ap in apObjs:
-        	for apRule in self.apRules:
-        		if apRule.match(ap):
-        		    ap.kickmethod = apRule.kickmethod
-        			self.targets.append(ap)
+            for apRule in self.apRules:
+                if apRule.match(ap):
+                    ap.kickmethod = apRule.kickmethod
+                    self.targets.append(ap)
          # return the list of targets to kick
         return self.targets
 
@@ -312,7 +312,7 @@ class Kicker:
     def __init__(self, ctx):
         self.lorconCtx = ctx
         self.engine = Gen80211.packetGenerator()
-				
+                
     # We're going to need to adjust targets to be matched to attack
     def makeMagic(self, targets, pnap = 0):
         """
@@ -326,45 +326,45 @@ class Kicker:
         packetCount = 1 
         # as reminder 0 = all, 1 = deauth, 2 auth, 3 reauth, 4 wds
         for obj in targets:
-        	#Get the object type.  Will return "ap" or "client" depending on the spelling of the name of the class in the tool lib
-        	obj.type = obj.__class__.__name__
-        	
-        	#OK we need to drop a client, here's the path for that.
-			if obj.type == "client":
-				ap = obj.bssid
-				kickmethod = obj.kickmethod
-				
-				#set the vars that act as the parameters to the deauthengine
-				# This is kinda a hack job.
-				channel = ap.channel
-				client_mac = obj.mac
-				bssid = ap.bssid
+            #Get the object type.  Will return "ap" or "client" depending on the spelling of the name of the class in the tool lib
+            obj.type = obj.__class__.__name__
+            
+            #OK we need to drop a client, here's the path for that.
+            if obj.type == "client":
+                ap = obj.bssid
+                kickmethod = obj.kickmethod
+                
+                #set the vars that act as the parameters to the deauthengine
+                # This is kinda a hack job.
+                channel = ap.channel
+                client_mac = obj.mac
+                bssid = ap.bssid
 
-				# If it's not a list, make it one
-				if isinstance(kickmethod,types.IntType):
-					kickmethod = [kickmethod]
-				# Well, looks like we got us a cowboy
-				if kickmethod == 0:
-					kickmethod = [1,2,3,4]
-				# Kick according to attacks in list
-				if 1 in kickmethod:
-					packetQue.extend(self.engine.deauthPacketEngine(True,client_mac,bssid,bssid,channel))
-				if 2 in kickmethod:
-					packetQue.extend(self.engine.authPacketEngine(True,client_mac,bssid,bssid,channel))
-				if 3 in kickmethod:
-					packetQue.extend(self.engine.reassPacketEngine(True,client_mac,bssid,bssid,channel))
-				if 4 in kickmethod:
-					packetQue.extend(self.engine.wdsPacketEngine(True,bssid,client_mac,bssid,channel))
-				#pew pew pew! Fire deauth packets!
-				if kickmethod = 0:
-					while kickmethod != 4:
-						kickmethod = kickmethod + 1
-						kick[kickmethod] 
-				else:
-					kick[kickmethod]
-					
-			elif obj.type == "accessPoint": # I Disagree with this camelcase
-				pass # currently unimplemented.  Will hold autoimmune attacks
+                # If it's not a list, make it one
+                if isinstance(kickmethod,types.IntType):
+                    kickmethod = [kickmethod]
+                # Well, looks like we got us a cowboy
+                if kickmethod == 0:
+                    kickmethod = [1,2,3,4]
+                # Kick according to attacks in list
+                if 1 in kickmethod:
+                    packetQue.extend(self.engine.deauthPacketEngine(True,client_mac,bssid,bssid,channel))
+                if 2 in kickmethod:
+                    packetQue.extend(self.engine.authPacketEngine(True,client_mac,bssid,bssid,channel))
+                if 3 in kickmethod:
+                    packetQue.extend(self.engine.reassPacketEngine(True,client_mac,bssid,bssid,channel))
+                if 4 in kickmethod:
+                    packetQue.extend(self.engine.wdsPacketEngine(True,bssid,client_mac,bssid,channel))
+                #pew pew pew! Fire deauth packets!
+                if kickmethod = 0:
+                    while kickmethod != 4:
+                        kickmethod = kickmethod + 1
+                        kick[kickmethod] 
+                else:
+                    kick[kickmethod]
+                    
+            elif obj.type == "accessPoint": # I Disagree with this camelcase
+                pass # currently unimplemented.  Will hold autoimmune attacks
 
         numPackets = len(packetQue)
         message.printMessage(
@@ -429,35 +429,35 @@ class AdMain:
         self.TotalPacket = 0
         # check if were root, exit if were not
         self.uidCheck() 
-		self.rules = self.parseRules()
+        self.rules = self.parseRules()
 
-	def parseRules(self,args):
-	    ap_rules = []
+    def parseRules(self,args):
+        ap_rules = []
         client_rules = []
         apmatch = re.compile('ap',re.IGNORECASE)
-	    clientmatch = re.compile('client',re.IGNORECASE)
-	    with open(args.rule,'r') as rulefile:
-	        json_data = open(file)
-			try:
-	            data = json.load(json_data)
-			except:
-			    print "The JSON configuration file failed to parse.  See the examples"
+        clientmatch = re.compile('client',re.IGNORECASE)
+        with open(args.rule,'r') as rulefile:
+            json_data = open(file)
+            try:
+                data = json.load(json_data)
+            except:
+                print "The JSON configuration file failed to parse.  See the examples"
             # Determine if this is an ap or client rule, then place in the right list
-			for key in data.keys():
-			    type = data[key]['type'] # The Type refers to the rule being for clients or access points
-				attack = data[key]['attack'] # Attack refers to what kind of wireless deauth we will perform			    
-			    del data[key]['type']
-			    del data[key]['attack']
-			    if apmatch.match(type):
-			    	ap_rules.append(Rule(data[key]))
-				elif apmatch.match(type):
-				    client_rules.append(Rule(data[key]))
-				else:
-				    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
-				    exit()
-		return [ap_rules,client_rules]
+            for key in data.keys():
+                type = data[key]['type'] # The Type refers to the rule being for clients or access points
+                attack = data[key]['attack'] # Attack refers to what kind of wireless deauth we will perform                
+                del data[key]['type']
+                del data[key]['attack']
+                if apmatch.match(type):
+                    ap_rules.append(Rule(data[key]))
+                elif apmatch.match(type):
+                    client_rules.append(Rule(data[key]))
+                else:
+                    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
+                    exit()
+        return [ap_rules,client_rules]
 
-			
+            
     def mloop(self, args):
         """
         main program loop

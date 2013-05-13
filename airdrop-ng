@@ -191,7 +191,7 @@ class getTargets:
         client_rules = []
         apmatch = recompile('ap', IGNORECASE)
         clientmatch = recompile('client', IGNORECASE)
-        with open(rulefile, 'r') as json_data:
+        with open(self.rulefile, 'r') as json_data:
             try:
                 data = json.load(json_data)
             except Exception, e:

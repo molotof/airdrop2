@@ -356,7 +356,7 @@ class Kicker:
                 if 4 in kickmethod:
                     packetQue.extend(self.engine.wdsPacketEngine(True,bssid,client_mac,bssid,channel))
                 #pew pew pew! Fire deauth packets!
-                if kickmethod = 0:
+                if kickmethod == 0:
                     while kickmethod != 4:
                         kickmethod = kickmethod + 1
                         kick[kickmethod] 

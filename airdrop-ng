@@ -204,8 +204,7 @@ class getTargets:
                     rtype = data[key]['type'] # The Type refers to the rule being for clients or access points
                     attack = data[key]['attack'] # Attack refers to what kind of wireless deauth we will perform                
                 except KeyError, e:
-                    print e
-                    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
+                    print "Looks like you forgot to add %s to your rules."  %(e)
                     sexit(-1)
                 del data[key]['type']
                 del data[key]['attack']

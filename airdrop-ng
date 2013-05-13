@@ -454,6 +454,7 @@ class AdMain:
                 data = json.load(json_data)
             except:
                 print "The JSON configuration file failed to parse.  See the examples"
+                sexit(-1)
             # Determine if this is an ap or client rule, then place in the right list
             for key in data.keys():
                 type = data[key]['type'] # The Type refers to the rule being for clients or access points

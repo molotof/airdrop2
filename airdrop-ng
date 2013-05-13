@@ -452,7 +452,8 @@ class AdMain:
         with open(args.rule, 'r') as json_data:
             try:
                 data = json.load(json_data)
-            except:
+            except Exception, e:
+                print e
                 print "The JSON configuration file failed to parse.  See the examples"
                 sexit(-1)
             # Determine if this is an ap or client rule, then place in the right list

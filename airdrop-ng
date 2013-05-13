@@ -111,7 +111,7 @@ class messages:
         file.close()
 
 class Rule:
-    #The client or AP rule is the input to this class
+    # The client or AP rule is the input to this class
 	def __init__(self, rule):
 	    self.rule = rule
 		anymatch = re.compile('any',re.IGNORECASE)
@@ -127,7 +127,7 @@ class Rule:
 			    del rule[key]
 
 	def match(self, obj):
-		#There will need to be error handling here for if you try to compare a client to an AP rule or vice versa
+		# There will need to be error handling here for if you try to compare a client to an AP rule or vice versa
 		obj_attributes = obj.__dict__
 		for key in obj_attributes.keys():
 			try:

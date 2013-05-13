@@ -200,8 +200,13 @@ class getTargets:
                 sexit(-1)
             # Determine if this is an ap or client rule, then place in the right list
             for key in data.keys():
-                rtype = data[key]['type'] # The Type refers to the rule being for clients or access points
-                attack = data[key]['attack'] # Attack refers to what kind of wireless deauth we will perform                
+                try:
+                    rtype = data[key]['type'] # The Type refers to the rule being for clients or access points
+                    attack = data[key]['attack'] # Attack refers to what kind of wireless deauth we will perform                
+                except KeyError, e:
+                    print e
+                    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
+                    sexit(-1)
                 del data[key]['type']
                 del data[key]['attack']
                 if apmatch.match(rtype):
@@ -210,7 +215,7 @@ class getTargets:
                     client_rules.append(Rule(data[key]))
                 else:
                     print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
-                    exit()
+                    sexit(-1)
         #self.rules = [ap_rules, client_rules]
         
         # extra copy here can probably remove

@@ -326,15 +326,16 @@ class Kicker:
         packetCount = 1 
         # as reminder 0 = all, 1 = deauth, 2 auth, 3 reauth, 4 wds
         for obj in targets:
-            #Get the object type.  Will return "ap" or "client" depending on the spelling of the name of the class in the tool lib
+            """Get the object type.  Will return "ap" or "client" depending on 
+            the spelling of the name of the class in the tool lib"""
             obj.type = obj.__class__.__name__
             
-            #OK we need to drop a client, here's the path for that.
+            # OK we need to drop a client, here's the path for that.
             if obj.type == "client":
                 ap = obj.bssid
                 kickmethod = obj.kickmethod
                 
-                #set the vars that act as the parameters to the deauthengine
+                # set the vars that act as the parameters to the deauthengine
                 # This is kinda a hack job.
                 channel = ap.channel
                 client_mac = obj.mac
@@ -348,13 +349,21 @@ class Kicker:
                     kickmethod = [1,2,3,4]
                 # Kick according to attacks in list
                 if 1 in kickmethod:
-                    packetQue.extend(self.engine.deauthPacketEngine(True,client_mac,bssid,bssid,channel))
+                    packetQue.extend(
+                        self.engine.deauthPacketEngine(
+                            True, client_mac, bssid, bssid, channel))
                 if 2 in kickmethod:
-                    packetQue.extend(self.engine.authPacketEngine(True,client_mac,bssid,bssid,channel))
+                    packetQue.extend(
+                        self.engine.authPacketEngine(
+                            True, client_mac, bssid, bssid, channel))
                 if 3 in kickmethod:
-                    packetQue.extend(self.engine.reassPacketEngine(True,client_mac,bssid,bssid,channel))
+                    packetQue.extend(
+                        self.engine.reassPacketEngine(
+                            True, client_mac, bssid, bssid, channel))
                 if 4 in kickmethod:
-                    packetQue.extend(self.engine.wdsPacketEngine(True,bssid,client_mac,bssid,channel))
+                    packetQue.extend(
+                        self.engine.wdsPacketEngine(
+                            True, bssid, client_mac, bssid, channel))
                 #pew pew pew! Fire deauth packets!
                 if kickmethod == 0:
                     while kickmethod != 4:

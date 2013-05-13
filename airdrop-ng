@@ -578,7 +578,7 @@ if __name__ == "__main__":
     if args == []:
         message = messages(options.log)
     else:
-        message = messages(options.log,args[0])
+        message = messages(options.log, args[0])
     
     # start the main loop
     #dropkick.box()

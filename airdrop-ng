@@ -17,6 +17,9 @@ import types
 import json
 
 
+#for debug
+import pdb
+
 try:
     import PyLorcon2
 except ImportError, e:
@@ -446,8 +449,7 @@ class AdMain:
         client_rules = []
         apmatch = recompile('ap', IGNORECASE)
         clientmatch = recompile('client', IGNORECASE)
-        with open(args.rule, 'r') as rulefile:
-            json_data = open(file)
+        with open(args.rule, 'r') as json_data:
             try:
                 data = json.load(json_data)
             except:

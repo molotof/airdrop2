@@ -140,14 +140,12 @@ class Rule:
 
     def match(self, obj):
         # There will need to be error handling here for if you try to compare a client to an AP rule or vice versa
-        obj_attributes = obj.__dict__
+        obj_attributes = obj.__dict__.copy()
         if obj.__class__.__name__ == "client":
             obj_attributes['mac'] = wifiobjects.pformatMac(obj_attributes['mac'],':')
+
             # TODO: BELOW This is a workaround -- we should have it fixed at some point
-            try:
-                del obj_attributes['apObject']
-            except:
-                print "excepted the apObject attrib delete."
+            del obj_attributes['apObject']
             # End workaround
         else:
             obj_attributes['bssid'] = wifiobjects.pformatMac(obj_attributes['bssid'],':')

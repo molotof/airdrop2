@@ -1,5 +1,7 @@
 #!/bin/bash
 
+killall NetworkManager
+killall nm-applet
 killall wicd
 killall dhclient
 killall wpa_supplicant

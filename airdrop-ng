@@ -15,6 +15,7 @@ from sys import argv, stderr
 from sys import exit as sexit
 import types
 import json
+import wifiobjects
 
 # Todo: only compare values of rule to values of tool wifiobjects that exist
 
@@ -140,6 +141,12 @@ class Rule:
     def match(self, obj):
         # There will need to be error handling here for if you try to compare a client to an AP rule or vice versa
         obj_attributes = obj.__dict__
+        pdb.set_trace()
+        obj_attributes['mac'] = wifiobjects.pformatMac(obj_attributes['mac'],':')
+
+        # TODO: BELOW This is a workaround -- we should have it fixed at some point
+        del obj_attributes['apObject']
+        # End workaround
 
         for key in obj_attributes.keys():
             try:

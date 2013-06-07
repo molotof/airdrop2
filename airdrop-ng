@@ -131,6 +131,8 @@ class Rule:
                     self.companymatch = recompile(rule[key]+".*", IGNORECASE)
                 if self.anymatch.match(rule[key]):
                     self.any = True
+                else:
+                    self.any = False
             except Exception, e:
                 print "We handled an error related to lists in the rule -- it's OK.  We know about it."
                 print e

@@ -268,8 +268,9 @@ class Kicker:
     """
     class for building and sending the kick packets
     """
-    def __init__(self, ctx):
+    def __init__(self, ctx, hopper):
         self.lorconCtx = ctx
+        self.channelcontrol = hopper # tool80211 channel hop controll
         self.engine = Gen80211.packetGenerator()
                 
     # We're going to need to adjust targets to be matched to attack
@@ -361,6 +362,8 @@ class Kicker:
         """
         Uses lorcon2 to send the actual packets
         """
+        # pause channel hopping while we inject
+        self.channelcontrol.pause()
         #why the hell does pktNum default = 5?
         #pktNum is number each packet is sent
         count = 0
@@ -386,8 +389,10 @@ class Kicker:
                 sexit(-1)
             count += 1
         else:
+                self.channelcontrol.unpause()
                 if pnap > 0:
                         sleep(pnap)
+        self.channelcontrol.unpause()
         return
 
 class AdMain:
@@ -424,7 +429,7 @@ class AdMain:
             #set zero packet flag to false
             zp = False
             # set up kicker
-            daKicker = Kicker(airview.ctx)
+            daKicker = Kicker(airview.ctx, airview.hopper)
             while True:
                     Targeting.run()
                     if Targeting.targets != None:

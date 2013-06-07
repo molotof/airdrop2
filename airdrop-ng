@@ -242,6 +242,8 @@ class getTargets:
         self.targets = []
         print "clients: " + str(len(clientObjs))
         for client in clientObjs:
+            if client.mac == "38:AA:3C:0E:38:A6":
+                print "HOLY FUCK CAPTAIN!!!!!!!!!!!!!!!!!!!!!!!"
             for clientRule in client_rules:
                 if clientRule.match(client):
                     client.kickmethod = clientRule.kickmethod

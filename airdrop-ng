@@ -143,6 +143,8 @@ class Rule:
         obj_attributes = obj.__dict__.copy()
         if obj.__class__.__name__ == "client":
             obj_attributes['mac'] = wifiobjects.pformatMac(obj_attributes['mac'],':')
+            obj_attributes['bssid'] = wifiobjects.pformatMac(obj_attributes['bssid'],':')
+
             # TODO: BELOW This is a workaround -- we should have it fixed at some point
             del obj_attributes['apObject']
             # End workaround
@@ -173,6 +175,8 @@ class Rule:
                 # Detect Lists
                 elif isinstance(self.rule[key],types.ListType):
                     if obj_attributes[key] in self.rule[key]:
+                        if "assbandit" == obj_attributes[key]:
+                            pdb.set_trace()
                         result = True
                 elif obj_attributes[key] == self.rule[key]:
                     result = True
@@ -361,7 +365,10 @@ class Kicker:
         Uses lorcon2 to send the actual packets
         """
         # pause channel hopping while we inject
-        self.channelcontrol.pause()
+        try:
+            self.channelcontrol.pause()
+        except Exception:
+            pdb.set_trace()
         #why the hell does pktNum default = 5?
         #pktNum is number each packet is sent
         count = 0
@@ -427,6 +434,8 @@ class AdMain:
             #set zero packet flag to false
             zp = False
             # set up kicker
+            while airview.hopper is '': 
+                sleep(.2)
             daKicker = Kicker(airview.ctx, airview.hopper)
             while True:
                     Targeting.run()

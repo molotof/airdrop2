@@ -143,12 +143,12 @@ class Rule:
         obj_attributes = obj.__dict__.copy()
         if obj.__class__.__name__ == "client":
             obj_attributes['mac'] = wifiobjects.pformatMac(obj_attributes['mac'],':')
-
             # TODO: BELOW This is a workaround -- we should have it fixed at some point
             del obj_attributes['apObject']
             # End workaround
         else:
             obj_attributes['bssid'] = wifiobjects.pformatMac(obj_attributes['bssid'],':')
+        result = False
         for key in obj_attributes.keys():
             try:
                 if key not in self.rule.keys() or key not in obj_attributes.keys():
@@ -172,17 +172,18 @@ class Rule:
 
                 # Detect Lists
                 elif isinstance(self.rule[key],types.ListType):
-                    result = obj_attributes[key] in self.rule[key]
+                    if obj_attributes[key] in self.rule[key]:
+                        result = True
                 elif obj_attributes[key] == self.rule[key]:
                     result = True
-                else:
-                    result = False
+                #else:
+                #    result = False
                 # Print the match to the user if there was a match on the rule
-                if result:
-                    print "Matched on: " + str(obj_attributes[key])
-                return result
             except KeyError:
                 print "Rule Error -- That attribute doesn't exist in the client or AP object"
+        if result:
+            print "Matched on: " + key #str(obj_attributes[key])
+        return result
 
 
 class getTargets:
@@ -242,7 +243,7 @@ class getTargets:
         self.targets = []
         print "clients: " + str(len(clientObjs))
         for client in clientObjs:
-            if client.mac == "38:AA:3C:0E:38:A6":
+            if client.mac == "\x38\xAA\x3C\x0E\x38\xA6":
                 print "HOLY FUCK CAPTAIN!!!!!!!!!!!!!!!!!!!!!!!"
             for clientRule in client_rules:
                 if clientRule.match(client):
@@ -289,7 +290,6 @@ class Kicker:
             """Get the object type.  Will return "ap" or "client" depending on 
             the spelling of the name of the class in the tool lib"""
             obj.type = obj.__class__.__name__
-            #pdb.set_trace()            
             # OK we need to drop a client, here's the path for that.
             if obj.type == "client":
                 ap = obj.apObject
@@ -310,7 +310,6 @@ class Kicker:
                 if int(kickmethod) == 0:
                     kickmethod = ['1','2','3','4']
                 # Kick according to attacks in list
-                #pdb.set_trace()
                 if '1' in kickmethod:
                     print "loaded."
                     packetQue.extend(
@@ -343,7 +342,6 @@ class Kicker:
         numPackets = len(packetQue)
         message.printMessage(
             "\nAttempting to TX %i packets %i times each" %(numPackets, packetCount))
-        #pdb.set_trace()
         while len(packetQue) != 0:
             print "pew"
             self.lorconTX(

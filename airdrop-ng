@@ -134,8 +134,8 @@ class Rule:
                 if self.anymatch.match(rule[key]):
                     self.any = True
             except Exception, e:
-                message.printError(["We handled an error related to lists in the rule,
-                    -- it's OK.  We know about it.", e])
+                message.printError(["We handled an error related to lists in the rule",
+                    "-- it's OK.  We know about it.", e])
 
     def match(self, obj):
         # There will need to be error handling here for if you try to compare a client to an AP rule or vice versa

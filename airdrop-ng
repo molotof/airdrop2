@@ -171,22 +171,28 @@ class Rule:
                 # Detect Lists
                 elif isinstance(self.rule[key],types.ListType):
                     if obj_attributes[key] in self.rule[key]:
-                        if "assbandit" == obj_attributes[key]:
-                            pdb.set_trace()
                         result = True
-                elif obj_attributes[key] == self.rule[key]:
+                # TODO rewview this
+                # the following expects strings, convert to upper
+                # when matching on mac, i also got matches on wired and probe fields
+                # comment out the break at line 194 return to replicate
+                elif str(obj_attributes[key]).upper() == str(self.rule[key]).upper():
                     result = True
                 #else:
                 #    result = False
                 # Print the match to the user if there was a match on the rule
             except KeyError:
                 message.printError("Rule Error -- That attribute doesn't exist in the client or AP object")
-            if result:
-                if self.any:
+            if result is True:
+                if self.any is True:
                     message.printMessage("Matched because of any in rule")
+                    # return
+                    break
                 else:
                     message.printMessage("Matched on: %s" %(key))
-            return result
+                    # return
+                    break
+        return result
 
 
 class getTargets:
@@ -244,14 +250,21 @@ class getTargets:
         # match clients in air to kick rules
         self.targets = []
         print "clients: " + str(len(clientObjs))
+        wiredCount = 0
         for client in clientObjs:
-            if client.mac == "\x38\xAA\x3C\x0E\x38\xA6":
+            # filter wired clients
+            if client.wired is True:
+                wiredCount += 1
+                continue
+            print client.mac.encode('hex')
+            if client.mac in ["\x38\xAA\x3C\x0E\x38\xA6", "\xe8\x39\x35\x0d\xaf\x10"]:
                 print "HOLY FUCK CAPTAIN!!!!!!!!!!!!!!!!!!!!!!!"
             for clientRule in client_rules:
                 if clientRule.match(client):
                     client.kickmethod = clientRule.kickmethod
                     self.targets.append(client)
                     print "---------------------------client---------------------"
+        print "wired client count: %s" %(wiredCount)
         for ap in apObjs:
             for apRule in ap_rules:
                 if apRule.match(ap):

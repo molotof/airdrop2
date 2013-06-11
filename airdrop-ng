@@ -439,7 +439,7 @@ class AdMain:
             while True:
                     Targeting.run()
                     if Targeting.targets != None:
-                        message.printMessage("num of matches: %s" + %(len(Targeting.targets)))
+                        message.printMessage("num of matches: %s" %(len(Targeting.targets)))
                         rtnPktCount = daKicker.makeMagic(Targeting.targets, int(args.pnap))
                         if rtnPktCount == 0:
                             message.printMessage(

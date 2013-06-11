@@ -121,6 +121,7 @@ class Rule:
     # The client or AP rule is the input to this class
     def __init__(self, rule):
         self.rule = rule
+        self.any = False
         self.anymatch = recompile('any', IGNORECASE)
         self.kickmethod = rule['attack']
         del rule['attack']
@@ -132,8 +133,6 @@ class Rule:
                     self.companymatch = recompile(rule[key]+".*", IGNORECASE)
                 if self.anymatch.match(rule[key]):
                     self.any = True
-                else:
-                    self.any = False
             except Exception, e:
                 print "We handled an error related to lists in the rule -- it's OK.  We know about it."
                 print e
@@ -200,6 +199,7 @@ class getTargets:
         """
         self.rulefile = rulefile
         self.Airv = toolinstance
+        # start up the sniffer and airview 
         self.debug       = debug  # debug flag
         self.targets     = []   # var to store matched targets in
 
@@ -403,7 +403,7 @@ class AdMain:
     """
     Airdop-ng2 main class
     """
-    def __init__(self, args):
+    def __init__(self):
         """
         Set up the program
         """
@@ -413,38 +413,34 @@ class AdMain:
         self.TotalPacket = 0
         # check if were root, exit if were not
         self.uidCheck() 
-        self.args = args
-        if None in [self.args.card, self.args.rule]:
-            message.printError(["-i or -r is missing\nExiting...\n\n"])
-            self.exit(-1)
-        self.airview = Tool80211.Airview(self.args.card)
-        # start the sniffer
-        self.airview.start()
-
-    def mloop(self):
+            
+    def mloop(self, args):
         """
         main program loop
         args = options var from optparse
         """
         try:
             # Start the main loop
-            napTime = float(self.args.nap)
+            if None in [args.card, args.rule]:
+                message.printError(["-i or -r is missing\nExiting...\n\n"])
+                self.exit(-1)
+            napTime = float(args.nap)
+            airview = Tool80211.Airview(args.card)
+            # start the sniffer
+            airview.start()
             #send the sniffer and the rules and get matches
-            Targeting = getTargets(self.airview, self.args.rule, self.args.debug)
+            Targeting = getTargets(airview,args.rule,args.debug)
             #set zero packet flag to false
             zp = False
             # set up kicker
-            # this was to fix hopper being ''
-            # should no longer be needed
-            # TODO remove following 2 lines
-            #while airview.hopper is '': 
-            #    sleep(.2)
-            daKicker = Kicker(self.airview.ctx, self.airview.hopper)
+            while airview.hopper is '': 
+                sleep(.2)
+            daKicker = Kicker(airview.ctx, airview.hopper)
             while True:
                     Targeting.run()
                     if Targeting.targets != None:
                         print "num of matches: " + str(len(Targeting.targets))
-                        rtnPktCount = daKicker.makeMagic(Targeting.targets, int(self.args.pnap))
+                        rtnPktCount = daKicker.makeMagic(Targeting.targets, int(args.pnap))
                         if rtnPktCount == 0:
                             message.printMessage(
                                 "Zero Packets were to be sent, Napping for 5 sec to await changes in sniffed data\n")
@@ -463,9 +459,24 @@ class AdMain:
             message.printMessage(["\nAirdrop-ng will now exit", \
                 "Sent %i Packets" %(self.TotalPacket), \
                 "\nExiting Program, Please take your card " \
-                "%s out of monitor mode" %(self.args.card)])
+                "%s out of monitor mode" %(args.card)])
             sexit(0)
         
+    def box(self):
+        """
+        Prints the header to use airgraph-ng
+        in a box with pretty blue terminal colors
+        """
+        print "\n" + bcolors.OKBLUE + "#"*49
+        print ''.join(["#",
+            " "*13,
+            bcolors.ENDC,
+            "Welcome to AirDrop-ng",
+            bcolors.OKBLUE,
+            " "*13,
+            "#"])
+        print "#"*49 + bcolors.ENDC + "\n"
+    
     def uidCheck(self):
         """
         check to see if were root
@@ -482,21 +493,6 @@ class AdMain:
         num = int to exit with
         """
         sexit(-1)
-
-def box(self):
-    """
-    Prints the header to use airgraph-ng
-    in a box with pretty blue terminal colors
-    """
-    print "\n" + bcolors.OKBLUE + "#"*49
-    print ''.join(["#",
-        " "*13,
-        bcolors.ENDC,
-        "Welcome to AirDrop-ng",
-        bcolors.OKBLUE,
-        " "*13,
-        "#"])
-    print "#"*49 + bcolors.ENDC + "\n"
 
 if __name__ == "__main__":
     """
@@ -520,8 +516,9 @@ if __name__ == "__main__":
     parser.add_option("-n", "--nap", dest="nap", default=0, 
         nargs=1, help="Time to sleep between loops")
 
+    dropkick = AdMain()
     if len(argv) <= 3: #check and show help if no arugments are provided at runtime
-                box()
+                dropkick.box()
                 parser.print_help()
                 print "\nERROR Not enough CLI arguments"
                 print "\nSample command line arguments:"
@@ -535,5 +532,5 @@ if __name__ == "__main__":
         message = messages(options.log, args[0])
     
     # start the main loop
-    dropkick = AdMain(options)
-    dropkick.mloop()
+    #dropkick.box()
+    dropkick.mloop(options)

@@ -461,7 +461,7 @@ class AdMain:
         # geteuid from os
         if geteuid() != 0:
             message.printError(["airdrop-ng must be run as root.\n",
-            "Please 'su' or 'sudo -i' and run again.\n","Exiting...\n\n"])
+            "Please 'su' or 'sudo -i' and run again.\n", "Exiting...\n\n"])
             self.exit(-1)
     
     def exit(self, num):

@@ -134,8 +134,8 @@ class Rule:
                 if self.anymatch.match(rule[key]):
                     self.any = True
             except Exception, e:
-                print "We handled an error related to lists in the rule -- it's OK.  We know about it."
-                print e
+                message.printError(["We handled an error related to lists in the rule,
+                    -- it's OK.  We know about it.", e])
 
     def match(self, obj):
         # There will need to be error handling here for if you try to compare a client to an AP rule or vice versa
@@ -183,9 +183,9 @@ class Rule:
                 #    result = False
                 # Print the match to the user if there was a match on the rule
             except KeyError:
-                print "Rule Error -- That attribute doesn't exist in the client or AP object"
+                message.printError("Rule Error -- That attribute doesn't exist in the client or AP object")
         if result:
-            print "Matched on: " + key #str(obj_attributes[key])
+            message.printMessage("Matched on: %s" %(key))
         return result
 
 
@@ -217,15 +217,14 @@ class getTargets:
             try:
                 data = json.load(json_data)
             except Exception, e:
-                print e
-                print "The JSON configuration file failed to parse.  See the examples"
+                message.printError([e, "The JSON configuration file failed to parse.  See the examples"])
                 sexit(-1)
             # Determine if this is an ap or client rule, then place in the right list
             for key in data.keys():
                 try:
                     rtype = data[key]['type'] # The Type refers to the rule being for clients or access points
                 except KeyError, e:
-                    print "Looks like you forgot to add %s to your rules."  %(e)
+                    message.printError("Looks like you forgot to add %s to your rules."  %(e))
                     sexit(-1)
                 del data[key]['type']
                 if apmatch.match(rtype):
@@ -233,7 +232,7 @@ class getTargets:
                 elif clientmatch.match(rtype):
                     client_rules.append(Rule(data[key]))
                 else:
-                    print "Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule."
+                    message.printError("Looks like you forgot to add type to your rules. I don't know if this is an AP or Client rule.")
                     sexit(-1)
         #self.rules = [ap_rules, client_rules]
         
@@ -346,7 +345,6 @@ class Kicker:
         message.printMessage(
             "\nAttempting to TX %i packets %i times each" %(numPackets, packetCount))
         while len(packetQue) != 0:
-            print "pew"
             self.lorconTX(
                 packetCount, #number of packets to send
                 packetQue[0][0], #packet in hex

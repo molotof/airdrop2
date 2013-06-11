@@ -462,21 +462,6 @@ class AdMain:
                 "%s out of monitor mode" %(args.card)])
             sexit(0)
         
-    def box():
-        """
-        Prints the header to use airgraph-ng
-        in a box with pretty blue terminal colors
-        """
-        print "\n" + bcolors.OKBLUE + "#"*49
-        print ''.join(["#",
-            " "*13,
-            bcolors.ENDC,
-            "Welcome to AirDrop-ng",
-            bcolors.OKBLUE,
-            " "*13,
-            "#"])
-        print "#"*49 + bcolors.ENDC + "\n"
-    
     def uidCheck(self):
         """
         check to see if were root
@@ -493,6 +478,21 @@ class AdMain:
         num = int to exit with
         """
         sexit(-1)
+
+def box():
+    """
+    Prints the header to use airgraph-ng
+    in a box with pretty blue terminal colors
+    """
+    print "\n" + bcolors.OKBLUE + "#"*49
+    print ''.join(["#",
+        " "*13,
+        bcolors.ENDC,
+        "Welcome to AirDrop-ng",
+        bcolors.OKBLUE,
+        " "*13,
+        "#"])
+    print "#"*49 + bcolors.ENDC + "\n"
 
 if __name__ == "__main__":
     """
@@ -516,9 +516,8 @@ if __name__ == "__main__":
     parser.add_option("-n", "--nap", dest="nap", default=0, 
         nargs=1, help="Time to sleep between loops")
 
-    dropkick = AdMain()
     if len(argv) <= 3: #check and show help if no arugments are provided at runtime
-                dropkick.box()
+                box()
                 parser.print_help()
                 print "\nERROR Not enough CLI arguments"
                 print "\nSample command line arguments:"
@@ -532,5 +531,5 @@ if __name__ == "__main__":
         message = messages(options.log, args[0])
     
     # start the main loop
-    #dropkick.box()
+    dropkick = AdMain()
     dropkick.mloop(options)

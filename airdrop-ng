@@ -403,44 +403,46 @@ class AdMain:
     """
     Airdop-ng2 main class
     """
-    def __init__(self):
+    def __init__(self, args):
         """
         Set up the program
+        args = options var from optparse
         """
         # trigger program to exit
         # self.exit = False
         # total packets tx'd
         self.TotalPacket = 0
         # check if were root, exit if were not
-        self.uidCheck() 
-            
-    def mloop(self, args):
+        self.uidCheck()
+        self.args = args
+        self.airview = Tool80211.Airview(self.args.card)
+        # start the sniffer
+        self.airview.start()
+        #send the sniffer and the rules and get matches
+        
+    def mloop(self):
         """
         main program loop
-        args = options var from optparse
         """
         try:
             # Start the main loop
-            if None in [args.card, args.rule]:
+            if None in [self.args.card, self.args.rule]:
                 message.printError(["-i or -r is missing\nExiting...\n\n"])
                 self.exit(-1)
-            napTime = float(args.nap)
-            airview = Tool80211.Airview(args.card)
-            # start the sniffer
-            airview.start()
+            napTime = float(self.args.nap)
             #send the sniffer and the rules and get matches
-            Targeting = getTargets(airview,args.rule,args.debug)
+            Targeting = getTargets(self.airview, self.args.rule, self.args.debug)
             #set zero packet flag to false
             zp = False
             # set up kicker
-            while airview.hopper is '': 
+            while self.airview.hopper is '': 
                 sleep(.2)
-            daKicker = Kicker(airview.ctx, airview.hopper)
+            daKicker = Kicker(self.airview.ctx, self.airview.hopper)
             while True:
                     Targeting.run()
                     if Targeting.targets != None:
                         message.printMessage("num of matches: %s" %(len(Targeting.targets)))
-                        rtnPktCount = daKicker.makeMagic(Targeting.targets, int(args.pnap))
+                        rtnPktCount = daKicker.makeMagic(Targeting.targets, int(self.args.pnap))
                         if rtnPktCount == 0:
                             message.printMessage(
                                 "Zero Packets were to be sent, Napping for 5 sec to await changes in sniffed data\n")
@@ -459,7 +461,7 @@ class AdMain:
             message.printMessage(["\nAirdrop-ng will now exit", \
                 "Sent %i Packets" %(self.TotalPacket), \
                 "\nExiting Program, Please take your card " \
-                "%s out of monitor mode" %(args.card)])
+                "%s out of monitor mode" %(self.args.card)])
             sexit(0)
         
     def uidCheck(self):
@@ -531,5 +533,5 @@ if __name__ == "__main__":
         message = messages(options.log, args[0])
     
     # start the main loop
-    dropkick = AdMain()
-    dropkick.mloop(options)
+    dropkick = AdMain(options)
+    dropkick.mloop()

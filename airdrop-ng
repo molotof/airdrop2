@@ -151,6 +151,7 @@ class Rule:
             obj_attributes['bssid'] = wifiobjects.pformatMac(obj_attributes['bssid'],':')
         result = False
         for key in obj_attributes.keys():
+            pdb.set_trace()
             try:
                 if key not in self.rule.keys() or key not in obj_attributes.keys():
                     continue
@@ -185,7 +186,10 @@ class Rule:
             except KeyError:
                 message.printError("Rule Error -- That attribute doesn't exist in the client or AP object")
             if result:
-                message.printMessage("Matched on: %s" %(key))
+                if self.any:
+                    message.printMessage("Matched because of any in rule")
+                else:
+                    message.printMessage("Matched on: %s" %(key))
             return result
 
 

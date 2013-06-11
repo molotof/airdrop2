@@ -356,8 +356,9 @@ class Kicker:
         # pause channel hopping while we inject
         try:
             self.channelcontrol.pause()
-        except Exception:
-            pdb.set_trace()
+        except Exception, e:
+            message.printError(["Channel Hopping failed to pause", str(e)])
+        
         #why the hell does pktNum default = 5?
         #pktNum is number each packet is sent
         count = 0

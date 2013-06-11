@@ -19,9 +19,6 @@ import wifiobjects
 
 # Todo: only compare values of rule to values of tool wifiobjects that exist
 
-#for debug
-import pdb
-
 try:
     import PyLorcon2
 except ImportError, e:
@@ -151,7 +148,6 @@ class Rule:
             obj_attributes['bssid'] = wifiobjects.pformatMac(obj_attributes['bssid'],':')
         result = False
         for key in obj_attributes.keys():
-            pdb.set_trace()
             try:
                 if key not in self.rule.keys() or key not in obj_attributes.keys():
                     continue

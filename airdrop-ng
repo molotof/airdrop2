@@ -365,12 +365,12 @@ class Kicker:
         try:
             currentchannel = self.lorconCtx.get_channel()
         except PyLorcon2.Lorcon2Exception ,e:
-            message.printError(["\n Error Message from lorcon:",str(e),
+            message.printError(["\n Error Message from lorcon:", str(e),
                 "Unable to get channel the wireless card is on"])
         try:
             self.lorconCtx.set_channel(channel) #set the channel to send packets on
         except PyLorcon2.Lorcon2Exception ,e:
-            message.printError(["\nError Message from lorcon:",str(e),
+            message.printError(["\nError Message from lorcon:", str(e),
                 "Unable to set channel card does not seem to support it",
                 "Skipping packet"])
             return False
@@ -378,7 +378,7 @@ class Kicker:
             try:
                 self.lorconCtx.send_bytes(packet)
             except PyLorcon2.Lorcon2Exception ,e:
-                message.printMessage(['\nError Message from lorcon:',str(e),
+                message.printMessage(['\nError Message from lorcon:', str(e),
                 "Are you sure you are using the correct driver with the -d option?",
                 "Or try ifconfig up on the card you provided and its vap."])
                 sexit(-1)

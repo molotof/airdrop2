@@ -363,7 +363,7 @@ class Kicker:
         #pktNum is number each packet is sent
         count = 0
         try:
-            cchannel = self.lorconCtx.get_channel()
+            currentchannel = self.lorconCtx.get_channel()
         except PyLorcon2.Lorcon2Exception ,e:
             message.printError(["\n Error Message from lorcon:",str(e),
                 "Unable to get channel the wireless card is on"])

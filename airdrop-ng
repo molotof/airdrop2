@@ -134,8 +134,8 @@ class Rule:
                 if self.anymatch.match(rule[key]):
                     self.any = True
             except Exception, e:
-                message.printError(["We handled an error related to lists in the rule",
-                    "-- it's OK.  We know about it.", e])
+                message.printError(["We handled an error related to lists in the rule --",
+                    "it's OK.  We know about it.", str(e)])
 
     def match(self, obj):
         # There will need to be error handling here for if you try to compare a client to an AP rule or vice versa
@@ -329,14 +329,6 @@ class Kicker:
                     packetQue.extend(
                         self.engine.wdsPacketEngine(
                             True, bssid, client_mac, bssid, channel))
-                #pew pew pew! Fire deauth packets!
-                #if kickmethod == 0:
-                #    while kickmethod != 4:
-                #        kickmethod = kickmethod + 1
-                #        kick[kickmethod] 
-                #else:
-                #    kick[kickmethod]
-                    
             elif obj.type == "accessPoint": # I Disagree with this camelcase
                 print "access point dropping is unimplemented"
                 pass # currently unimplemented.  Will hold autoimmune attacks

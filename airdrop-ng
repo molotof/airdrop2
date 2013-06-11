@@ -462,7 +462,7 @@ class AdMain:
                 "%s out of monitor mode" %(args.card)])
             sexit(0)
         
-    def box(self):
+    def box():
         """
         Prints the header to use airgraph-ng
         in a box with pretty blue terminal colors

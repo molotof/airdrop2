@@ -313,6 +313,8 @@ class Kicker:
                 # set the vars that act as the parameters to the deauthengine
                 # This is kinda a hack job.
                 if ap == None:
+                    message.printMessage("No ap found for target client %s yet....."
+                        %(wifiobjects.pformatMac(obj.mac,':')))
                     continue
                 channel = ap.channel
                 client_mac = obj.mac

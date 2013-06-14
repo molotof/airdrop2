@@ -120,8 +120,22 @@ class Rule:
         self.rule = rule
         self.any = False
         self.anymatch = recompile('any', IGNORECASE)
+        self.typematch = recompile('allow', IGNORECASE)
+
         self.kickmethod = rule['attack']
         del rule['attack']
+
+        self.ruletype = rule['ruletype']
+
+        # determine the rule allow/deny status.
+        if self.typematch.match(rule['ruletype']):
+            # ALLOW RULE DETECTED
+            self.ruletype = True
+        else:
+            # DENY RULE
+            self.ruletype = False
+        del rule['ruletype']
+
         for key in rule.keys():
             try:
                 # Note there could be a bug here if it doesn't get named the same in client obj.
@@ -257,20 +271,33 @@ class getTargets:
                 wiredCount += 1
                 continue
             print client.mac.encode('hex')
-            if client.mac in ["\x38\xAA\x3C\x0E\x38\xA6", "\xe8\x39\x35\x0d\xaf\x10"]:
-                print "HOLY FUCK CAPTAIN!!!!!!!!!!!!!!!!!!!!!!!"
+            #if client.mac in ["\x38\xAA\x3C\x0E\x38\xA6", "\xe8\x39\x35\x0d\xaf\x10"]:
+            #    print "HOLY FUCK CAPTAIN!!!!!!!!!!!!!!!!!!!!!!!"
+            allows = []
             for clientRule in client_rules:
                 if clientRule.match(client):
-                    client.kickmethod = clientRule.kickmethod
-                    self.targets.append(client)
+                    if clientRule.ruletype == True:
+                        allows.append(client)
+                    else:
+                        client.kickmethod = clientRule.kickmethod
+                        self.targets.append(client)
                     print "---------------------------client---------------------"
         print "wired client count: %s" %(wiredCount)
+
         for ap in apObjs:
             for apRule in ap_rules:
                 if apRule.match(ap):
-                    ap.kickmethod = apRule.kickmethod
-                    self.targets.append(ap)
-         # return the list of targets to kick
+                    if apRule.ruletype == True:
+                        allows.append(ap)
+                    else:
+                        ap.kickmethod = apRule.kickmethod
+                        self.targets.append(ap)
+
+        # Filter out the allows from the target list before passing it off
+        for allow in allows:
+            if allow in self.targets:
+                # OMG why python, why do you make me so fucking lazy.
+                self.targets.remove(allow)
         return self.targets
 
     def run(self):

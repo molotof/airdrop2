@@ -130,6 +130,7 @@ class Rule:
         # determine the rule allow/deny status.
         if self.typematch.match(rule['ruletype']):
             # ALLOW RULE DETECTED
+            print "allow"
             self.ruletype = True
         else:
             # DENY RULE
@@ -282,6 +283,7 @@ class getTargets:
                         client.kickmethod = clientRule.kickmethod
                         self.targets.append(client)
                     print "---------------------------client---------------------"
+
         print "wired client count: %s" %(wiredCount)
 
         for ap in apObjs:
@@ -345,7 +347,14 @@ class Kicker:
                     message.printMessage("No ap found for target client %s yet....."
                         %(wifiobjects.pformatMac(obj.mac,':')))
                     continue
+
                 channel = ap.channel
+
+                if channel == None: 
+                    message.printMessage("No channel found for target client %s yet....."
+                        %(wifiobjects.pformatMac(obj.mac,':')))
+                    continue
+
                 client_mac = obj.mac
                 bssid = ap.bssid
 

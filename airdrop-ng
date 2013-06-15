@@ -260,7 +260,7 @@ class getTargets:
         # TODO: make Tool not have a dict setup so we can just pull straight.
         clientObjs = self.Airv.clientObjects.values()
         apObjs = self.Airv.apObjects.values()
-
+        allows = []
         # match clients in air to kick rules
         self.targets = []
         print "clients: " + str(len(clientObjs))
@@ -273,7 +273,7 @@ class getTargets:
             print client.mac.encode('hex')
             #if client.mac in ["\x38\xAA\x3C\x0E\x38\xA6", "\xe8\x39\x35\x0d\xaf\x10"]:
             #    print "HOLY FUCK CAPTAIN!!!!!!!!!!!!!!!!!!!!!!!"
-            allows = []
+
             for clientRule in client_rules:
                 if clientRule.match(client):
                     if clientRule.ruletype == True:
@@ -294,10 +294,12 @@ class getTargets:
                         self.targets.append(ap)
 
         # Filter out the allows from the target list before passing it off
-        for allow in allows:
-            if allow in self.targets:
-                # OMG why python, why do you make me so fucking lazy.
-                self.targets.remove(allow)
+        if len(allows) != 0:
+            for allow in allows:
+                if allow in self.targets:
+                    # OMG why python, why do you make me so fucking lazy.
+                    self.targets.remove(allow)
+                    print "rem'd"
         return self.targets
 
     def run(self):

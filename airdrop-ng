@@ -130,7 +130,6 @@ class Rule:
         # determine the rule allow/deny status.
         if self.typematch.match(rule['ruletype']):
             # ALLOW RULE DETECTED
-            print "allow"
             self.ruletype = True
         else:
             # DENY RULE
@@ -155,7 +154,6 @@ class Rule:
         if obj.__class__.__name__ == "client":
             obj_attributes['mac'] = wifiobjects.pformatMac(obj_attributes['mac'],':')
             obj_attributes['bssid'] = wifiobjects.pformatMac(obj_attributes['bssid'],':')
-
             # TODO: BELOW This is a workaround -- we should have it fixed at some point
             del obj_attributes['apObject']
             # End workaround
@@ -169,6 +167,7 @@ class Rule:
                 # If it says any in the rule, realize that and drop it
                 if self.any:
                     result = True
+                    break
                 # Company Name Match
                 #todo == if there's a list, treat it properly regardless of if it's company
                 #todo - if it's a range, build a range object
@@ -272,9 +271,6 @@ class getTargets:
                 wiredCount += 1
                 continue
             print client.mac.encode('hex')
-            #if client.mac in ["\x38\xAA\x3C\x0E\x38\xA6", "\xe8\x39\x35\x0d\xaf\x10"]:
-            #    print "HOLY FUCK CAPTAIN!!!!!!!!!!!!!!!!!!!!!!!"
-
             for clientRule in client_rules:
                 if clientRule.match(client):
                     if clientRule.ruletype == True:

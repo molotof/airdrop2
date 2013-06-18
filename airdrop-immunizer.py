@@ -44,30 +44,21 @@ immuneclient.type = "client"
 filename = sys.argv[2]
 file_exists = os.path.exists(filename)
 # Open the filename and write changes
-if file_exists:
-    with open(filename,'r') as conffile:
-        pdb.set_trace()
-        # Determine if the file exists and if it does, open it as a json object.
-        try:
-            data = json.load(conffile)
-        except:
-            print "File did not contain rules already or did not exist, writing new rules file to " + filename
+with open(filename,'r') as conffile:
+    pdb.set_trace()
+    # Determine if the file exists and if it does, open it as a json object.
+    if file_exists:
+        data = json.load(conffile)
+    else:
+        data = {}
 
-data['ap'+mac] = immuneap.__dict__
-data['client'+mac] = immuneclient.__dict__
-
-# Remove the Nones and replace with ""
-# Note: does it matter if it's "" vs null when parsed by the rule parser and compared on the match?!
-for rule in data.keys():
-    for key in data[rule]:
-        if data[rule][key] == None or key == 'fts': #must also remove the fts value that is generated.
-            data[rule][key] = ""
+    data['ap'+mac] = immuneap.__dict__
+    data['client'+mac] = immuneclient.__dict__
 
 with open(filename,'w') as conffile:
     conffile.write(json.dumps(data))
     print str(sys.argv[1]) + " immunization written to config file at " + filename
-
-# I may have to make my own ap and client wifiobject stubs here in order to keep the peace.    
+    
 #class accessPoint:
 #    """
 #    Access point object

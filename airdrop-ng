@@ -362,7 +362,6 @@ class Kicker:
                     kickmethod = ['1','2','3','4']
                 # Kick according to attacks in list
                 if '1' in kickmethod:
-                    print "loaded."
                     packetQue.extend(
                         self.engine.deauthPacketEngine(
                             True, client_mac, bssid, bssid, channel))

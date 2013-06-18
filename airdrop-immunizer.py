@@ -33,7 +33,7 @@ immuneap = accessPoint(mac)
 # Add the aspects of the object that are ONLY found in the RULE class
 immuneap.ruletype = "allow"
 immuneap.attack = "0"
-immuneap.type = "access_point"
+immuneap.type = "ap"
 
 # The same as above, but for a client. We create both just because it's easy.
 immuneclient = client(mac)

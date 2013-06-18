@@ -416,7 +416,7 @@ class Kicker:
             message.printError(["\n Error Message from lorcon:", str(e),
                 "Unable to get channel the wireless card is on"])
         try:
-            self.lorconCtx.set_channel(channel) #set the channel to send packets on
+            self.lorconCtx.set_channel(int(channel)) #set the channel to send packets on
         except PyLorcon2.Lorcon2Exception ,e:
             message.printError(["\nError Message from lorcon:", str(e),
                 "Unable to set channel card does not seem to support it",
@@ -474,9 +474,20 @@ class AdMain:
             zp = False
             # set up kicker
             while self.airview.hopper is '': 
+                # deal with race condidion, while we wait for hopper to start
                 sleep(.2)
             daKicker = Kicker(self.airview.ctx, self.airview.hopper)
             while True:
+                    if self.args.channel is not False:
+                        # TODO, not ideal, there will be some card channel drift but not much
+                        self.airview.hopper.pause()
+                        setchan = self.airview.hopper.setchannel(int(self.args.channel))
+                        if setchan == -1:
+                            message.printError("setting channel %s failed" %(self.args.channel))
+                            message.printMessage("starting channel hopping")
+                            self.airview.hopper.unpause()
+                        elif setchan == 0:
+                            message.printMessage("set channel to %s" %(self.args.channel))
                     Targeting.run()
                     if Targeting.targets != None:
                         message.printMessage("num of matches: %s" %(len(Targeting.targets)))
@@ -544,6 +555,8 @@ if __name__ == "__main__":
     parser = OptionParser("usage: %prog options [-i,-r] -s -p -b -n")  
     parser.add_option("-i", "--interface", dest="card", nargs=1,
          help="Wireless card in monitor mode to inject from")
+    parser.add_option("-c", "--channel", dest="channel",
+        nargs=1, help="Stop channel hopping and set a channel", default=False)
     parser.add_option("-r", "--rule", dest="rule",
         nargs=1, help="Rule File for matched deauths")
     parser.add_option("-s", "--sleep", dest="pnap", default=0,

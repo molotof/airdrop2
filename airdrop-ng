@@ -270,7 +270,13 @@ class getTargets:
             if client.wired is True:
                 wiredCount += 1
                 continue
-            print client.mac.encode('hex')
+            # next bit for testing    
+            if client.bssid == "Not Assoicated":
+                hbssid = client.bssid
+            else:
+                hbssid = client.bssid.encode('hex')
+            print "%s , %s" %(client.mac.encode('hex'), hbssid)
+            # testing done
             for clientRule in client_rules:
                 if clientRule.match(client):
                     if clientRule.ruletype == True:

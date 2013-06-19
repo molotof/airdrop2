@@ -237,7 +237,7 @@ class getTargets:
             try:
                 data = json.load(json_data)
             except Exception, e:
-                message.printError([e, "The JSON configuration file failed to parse.  See the examples"])
+                message.printError([str(e), "The JSON configuration file failed to parse.  See the examples"])
                 sexit(-1)
             # Determine if this is an ap or client rule, then place in the right list
             for key in data.keys():

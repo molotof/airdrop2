@@ -139,7 +139,7 @@ class Rule:
         for key in rule.keys():
             try:
                 # Note there could be a bug here if it doesn't get named the same in client obj.
-                if key == "company":
+                if key == "oui":
                     #Build a greedy, case-ignoring regex to match off of
                     self.companymatch = recompile(rule[key]+".*", IGNORECASE)
                 if self.anymatch.match(rule[key]):
@@ -171,10 +171,10 @@ class Rule:
                 # Company Name Match
                 #todo == if there's a list, treat it properly regardless of if it's company
                 #todo - if it's a range, build a range object
-                elif key == "company":
+                elif key == "oui":
                     # If it's a list of companies
                     if isinstance(self.rule[key],types.ListType):
-                        for item in rule['company']:
+                        for item in rule['oui']:
                             # Do any items in the list match our object?
                             if self.companymatch.match(item):
                                 result = True

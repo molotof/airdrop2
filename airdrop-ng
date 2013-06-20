@@ -280,6 +280,8 @@ class getTargets:
             for clientRule in client_rules:
                 if clientRule.match(client):
                     if clientRule.ruletype == True:
+                        # TODO bit of a hack fix, no place sets this back to true
+                        client.apObject.bcast = False
                         allows.append(client)
                     else:
                         client.kickmethod = clientRule.kickmethod
@@ -359,7 +361,9 @@ class Kicker:
 
                 client_mac = obj.mac
                 bssid = ap.bssid
-
+                bcast = ap.bcast
+                if bcast is False:
+                    pdb.set_trace()
                 # If it's not a list, make it one
                 if isinstance(kickmethod,types.IntType):
                     kickmethod = [kickmethod]
@@ -370,19 +374,19 @@ class Kicker:
                 if '1' in kickmethod:
                     packetQue.extend(
                         self.engine.deauthPacketEngine(
-                            True, client_mac, bssid, bssid, channel))
+                            bcast, client_mac, bssid, bssid, channel))
                 if '2' in kickmethod:
                     packetQue.extend(
                         self.engine.authPacketEngine(
-                            True, client_mac, bssid, bssid, channel))
+                            bcast, client_mac, bssid, bssid, channel))
                 if '3' in kickmethod:
                     packetQue.extend(
                         self.engine.reassPacketEngine(
-                            True, client_mac, bssid, bssid, channel))
+                            bcast, client_mac, bssid, bssid, channel))
                 if '4' in kickmethod:
                     packetQue.extend(
                         self.engine.wdsPacketEngine(
-                            True, bssid, client_mac, bssid, channel))
+                            bcast, bssid, client_mac, bssid, channel))
             elif obj.type == "accessPoint": # I Disagree with this camelcase
                 print "access point dropping is unimplemented"
                 pass # currently unimplemented.  Will hold autoimmune attacks

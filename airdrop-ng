@@ -119,9 +119,11 @@ class Rule:
     def __init__(self, rule):
         self.rule = rule
         self.any = False
+        # turn off all broadcast packets unless its allowed
+        self.bcastAllow = False
         self.anymatch = recompile('any', IGNORECASE)
         self.typematch = recompile('allow', IGNORECASE)
-
+        
         self.kickmethod = rule['attack']
         del rule['attack']
 
@@ -167,6 +169,8 @@ class Rule:
                 # If it says any in the rule, realize that and drop it
                 if self.any:
                     result = True
+                    # allow broadcasts
+                    self.bcastAllow = True
                     break
                 # Company Name Match
                 #todo == if there's a list, treat it properly regardless of if it's company
@@ -192,6 +196,8 @@ class Rule:
                 # comment out the break at line 194 return to replicate
                 elif str(obj_attributes[key]).upper() == str(self.rule[key]).upper():
                     result = True
+                    if key == "bssid":
+                        self.bcastAllow = True
                 #else:
                 #    result = False
                 # Print the match to the user if there was a match on the rule
@@ -278,10 +284,13 @@ class getTargets:
             print "%s , %s" %(client.mac.encode('hex'), hbssid)
             # testing done
             for clientRule in client_rules:
+                # TODO clients never seem to match allow rules
                 if clientRule.match(client):
+                    # TODO commented out all broadcast packets
+                    #client.apObject.bcast = clientRule.bcastAllow
                     if clientRule.ruletype == True:
-                        # TODO bit of a hack fix, no place sets this back to true
-                        client.apObject.bcast = False
+                        print "we are not fucked"
+                        # allow a client rule
                         allows.append(client)
                     else:
                         client.kickmethod = clientRule.kickmethod
@@ -362,8 +371,6 @@ class Kicker:
                 client_mac = obj.mac
                 bssid = ap.bssid
                 bcast = ap.bcast
-                if bcast is False:
-                    pdb.set_trace()
                 # If it's not a list, make it one
                 if isinstance(kickmethod,types.IntType):
                     kickmethod = [kickmethod]

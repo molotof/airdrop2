@@ -289,7 +289,6 @@ class getTargets:
                     # TODO commented out all broadcast packets
                     #client.apObject.bcast = clientRule.bcastAllow
                     if clientRule.ruletype == True:
-                        print "we are not fucked"
                         # allow a client rule
                         allows.append(client)
                     else:

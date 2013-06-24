@@ -1,0 +1,10 @@
+interface=wlan0
+driver=nl80211
+channel=7
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=CCMP
+wpa_group_rekey=600
+wpa_gmk_rekey=86400s
+wpa=2
+wpa_passphrase=eriamjh151
+ssid=DemoAP

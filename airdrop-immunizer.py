@@ -72,18 +72,23 @@ immuneclient.bssid = mac
 filename = sys.argv[2]
 file_exists = os.path.exists(filename)
 # Open the filename and write changes
-with open(filename,'r') as conffile:
-    pdb.set_trace()
-    # Determine if the file exists and if it does, open it as a json object.
-    if file_exists:
-        data = json.load(conffile)
-    else:
-        data = {}
+# Determine if the file exists and if it does, open it as a json object.
+if file_exists:
+    conffile = open(filename,'r+')
+    data = json.load(conffile)
+else:
+    conffile = open(filename,'w')
+    data = {}
 
-<<<<<<< HEAD
+conffile.close()
+
 data['ap'+mac] = immuneap.__dict__
 data['client'+mac] = immuneclient.__dict__
-del data['client'+mac]['apObject']
+try:
+    del data['client'+mac]['apObject']
+except:
+    pass
+    #i'm lazy, sue me.
 
 # Remove the Nones and replace with ""
 # Note: does it matter if it's "" vs null when parsed by the rule parser and compared on the match?!
@@ -91,19 +96,12 @@ for rule in data.keys():
     for key in data[rule]:
         if data[rule][key] == None or key == 'fts': #must also remove the fts value that is generated.
             data[rule][key] = ""
-=======
-    data['ap'+mac] = immuneap.__dict__
-    data['client'+mac] = immuneclient.__dict__
->>>>>>> 4a291fc23e6dc27f5b89a7798877c06498406851
 
 with open(filename,'w') as conffile:
     conffile.write(json.dumps(data))
     print str(sys.argv[1]) + " immunization written to config file at " + filename
-<<<<<<< HEAD
 
 # I may have to make my own ap and client wifiobject stubs here in order to keep the peace.    
-=======
-    
 #class accessPoint:
 #    """
 #    Access point object
@@ -149,4 +147,3 @@ with open(filename,'w') as conffile:
 #        self.oui = self.populateOUI() # populate clients oui lookup#
 #        self.apObject = None          # stores reference link to ap# object when connected to bssid
 
->>>>>>> 4a291fc23e6dc27f5b89a7798877c06498406851

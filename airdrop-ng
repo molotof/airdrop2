@@ -162,13 +162,23 @@ class Rule:
         else:
             obj_attributes['bssid'] = wifiobjects.pformatMac(obj_attributes['bssid'],':')
         result = False
+
+        # Match_hash is a list of key,value tuples which states which rule aspects have and have not been matched. If not all the key/value tuples are key/True, then the rule failed to match!
+        match_hash = {}
+        #this establishment of the match_hash is performed in-code below
+        #for key in self.rule.keys():
+        #    match_hash[key] = False;
+
         for key in obj_attributes.keys():
             try:
+                #the attribute being matched on must exist in the rule to go further.
                 if key not in self.rule.keys() or key not in obj_attributes.keys():
                     continue
+                result = False
                 # If it says any in the rule, realize that and drop it
                 if self.any:
-                    result = True
+                    # Because of the break, you have to spec the match_hash here as true all over.
+                    match_hash = [True]
                     # allow broadcasts
                     self.bcastAllow = True
                     break
@@ -198,6 +208,7 @@ class Rule:
                     result = True
                     if key == "bssid":
                         self.bcastAllow = True
+                match_hash[key] = result
                 #else:
                 #    result = False
                 # Print the match to the user if there was a match on the rule
@@ -212,7 +223,11 @@ class Rule:
                     message.printMessage("Matched on: %s" %(key))
                     # return
                     break
-        return result
+        matchvalues = match_hash.values()
+        if matchvalues == ([True]*len(matchvalues)):
+            return True            
+        else:
+            return False
 
 
 class getTargets:

@@ -223,12 +223,14 @@ class Rule:
                     message.printMessage("Matched on: %s" %(key))
                     # return
                     break
-        matchvalues = match_hash.values()
-        if matchvalues == ([True]*len(matchvalues)):
-            return True            
-        else:
+        try:
+            matchvalues = match_hash.values()
+            if matchvalues == ([True]*len(matchvalues)):
+                return True            
+            else:
+                return False
+        except AttributeError:
             return False
-
 
 class getTargets:
     """

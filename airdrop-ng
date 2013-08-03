@@ -224,14 +224,12 @@ class Rule:
                     # return
                     break
         matchvalues = match_hash.values()
-        if len(matchvalues) != 0:
-            if matchvalues == ([True]*len(matchvalues)):
-                return True            
-            else:
-                return False
-        
+        if matchvalues == ([True]*len(matchvalues)):
+            return True            
         else:
             return False
+
+
 class getTargets:
     """
     Get Targets from Airview and parse rule files
